@@ -19,7 +19,7 @@ let [src, turnArg] = argv._
 
 
 let turnData = (() => {
-    let match = RegExp('(?<start>\\d+)(?<step1>\\|[^|]*\\|)?(?<to>-(?<end>\\d+(?<step2>\\|[^|]+\\|)?)?)?')
+    let match = RegExp('(?<start>\\d+)(?<step1>\\|[^|]*\\|)?(?<to>-(?<end>\\d+)?(?<step2>\\|[^|]+\\|)?)?')
         .exec(turnArg);
     if (!match) return {};
     console.log(match.groups)
