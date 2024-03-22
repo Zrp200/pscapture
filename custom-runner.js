@@ -37,167 +37,166 @@ console.log(turnData)
 const PREFIX = 'https://replay.pokemonshowdown.com/';
 if (!src.startsWith(PREFIX)) src = PREFIX + src
 
-;(async () => {
-        const browser = await launch({headless: false})
-        const log = new Promise(resolve => {
-            browser.newPage()
-                .then(page => page
-                    .goto(`${src}.log`)
-                    .then(it => it.text())
-                    .then(text => {
-                        page.close() // I don't care when it closes.
-                        resolve(text)
-                    })
-                )
-        })
-        const page = (await browser.pages())[0] // use default page
-        await Promise.all([
-            ['font-awesome', 'battle', 'replay', 'utilichart',]
-                .map(url => page.addStyleTag({url: `https://play.pokemonshowdown.com/style/${url}.css?a7`})),
-            [
-                'js/lib/ps-polyfill.js',
-                'config/config.js?a7',
-                'js/lib/jquery-1.11.0.min.js',
-                'js/lib/html-sanitizer-minified.js',
-                'js/battle-sound.js',
-                'js/battledata.js?a7',
-                'data/pokedex-mini.js?a7',
-                'data/pokedex-mini-bw.js?a7',
-                'data/graphics.js?a7',
-                'data/pokedex.js?a7',
-                'data/moves.js?a7',
-                'data/abilities.js?a7',
-                'data/items.js?a7',
-                'data/teambuilder-tables.js?a7',
-                'js/battle-tooltips.js?a7',
-                'js/battle.js?a7'
-            ].map(url => page.addScriptTag({url: `https://play.pokemonshowdown.com/${url}`})),
-        ].flat())
-        const Battle = await page.evaluateHandle("Battle")
-        const wrapper = await page.evaluateHandle(() => {
-            // set up
-            let el = $('.wrapper');
-            if (el.length) return el;
-            $('body').append(
-                '<div class="wrapper replay-wrapper" style="max-width:1180px;margin:0 auto">'
-                + '<div class="battle"></div>'
-                + '<div class="battle-log"></div>'
-                // + '<div class="replay-controls"></div>'
-                // + '<div class="replay-controls-2"></div>'
-            );
-            return $('.wrapper');
-        })
+const browser = launch({headless: false});
+let usedFirstPage = false
+download(browser, src, turnData)
+    .then(process.exit)
 
+async function download(browser, src, turnData) {
+    browser = await browser
+    const log = new Promise(resolve => {
+        browser.newPage()
+            .then(page => page
+                .goto(`${src}.log`)
+                .then(it => it.text())
+                .then(text => {
+                    page.close() // I don't care when it closes.
+                    resolve(text)
+                })
+            )
+    })
+    const page = usedFirstPage ? await browser.newPage() : (usedFirstPage = true) && (await browser.pages)[0] // use default page
+    await Promise.all([
+        ['font-awesome', 'battle', 'replay', 'utilichart',]
+            .map(url => page.addStyleTag({url: `https://play.pokemonshowdown.com/style/${url}.css?a7`})),
+        [
+            'js/lib/ps-polyfill.js',
+            'config/config.js?a7',
+            'js/lib/jquery-1.11.0.min.js',
+            'js/lib/html-sanitizer-minified.js',
+            'js/battle-sound.js',
+            'js/battledata.js?a7',
+            'data/pokedex-mini.js?a7',
+            'data/pokedex-mini-bw.js?a7',
+            'data/graphics.js?a7',
+            'data/pokedex.js?a7',
+            'data/moves.js?a7',
+            'data/abilities.js?a7',
+            'data/items.js?a7',
+            'data/teambuilder-tables.js?a7',
+            'js/battle-tooltips.js?a7',
+            'js/battle.js?a7'
+        ].map(url => page.addScriptTag({url: `https://play.pokemonshowdown.com/${url}`})),
+    ].flat())
+    const Battle = await page.evaluateHandle("Battle")
+    const wrapper = await page.evaluateHandle(() => {
+        // set up
+        let el = $('.wrapper');
+        if (el.length) return el;
+        $('body').append(
+            '<div class="wrapper replay-wrapper">'
+            + '<div class="battle"></div>'
+            + '<div class="battle-log"></div>'
+            // + '<div class="replay-controls"></div>'
+            // + '<div class="replay-controls-2"></div>'
+        );
+        return $('.wrapper');
+    })
 
-        // console.log(await log)
-        let battle = await Battle.evaluateHandle((Battle, text) => new Battle({
-            id: $('input[name=replayid]').val() || '',
-            $frame: $('.battle'),
-            $logFrame: $('.battle-log'),
-            log: (text || '').replace(/\\\//g, '/').split('\n'),
-            isReplay: true,
-            paused: true,
-            autoresize: false,
-        }), await log)
-        if (reverse) {
-            await battle.evaluate(b => b.switchViewpoint())
-        }
-        let state = new EventEmitter()
-            .on('turn', async () => {
-                const {end} = turnData
-                if (!end) return
-                const turn = await page.evaluate(b => b.turn, battle)
-                if (turn >= end) {
-                    const {step2} = turnData
-                    if (step2) {
-                        // search for end action
-                        let step = null
-                        const newStep = async () => {
-                            let prev
-                            while (true) {
-                                prev = step
-                                step = await battle.evaluate(b => b.stepQueue[b.currentStep])
-                                if (prev !== step) {
-                                    console.log(step)
-                                    return step;
-                                }
+    let battle = await Battle.evaluateHandle((Battle, text) => new Battle({
+        id: $('input[name=replayid]').val() || '',
+        $frame: $('.battle'),
+        $logFrame: $('.battle-log'),
+        log: (text || '').replace(/\\\//g, '/').split('\n'),
+        isReplay: true,
+        paused: true,
+        autoresize: false,
+    }), await log)
+    if (reverse) {
+        await battle.evaluate(b => b.switchViewpoint())
+    }
+    let state = new EventEmitter()
+        .on('turn', async () => {
+            const {end} = turnData
+            if (!end) return
+            const turn = await page.evaluate(b => b.turn, battle);
+            if (turn >= end) {
+                const {step2} = turnData
+                if (step2) {
+                    // search for end action
+                    let step = null
+                    const newStep = async () => {
+                        let prev
+                        while (true) {
+                            prev = step
+                            step = await battle.evaluate(b => b.stepQueue[b.currentStep])
+                            if (prev !== step) {
+                                console.log(step)
+                                return step;
                             }
                         }
-                        console.log('ending: ');
-                        // noinspection StatementWithEmptyBodyJS
-                        do await newStep(); while (!step.startsWith(step2))
-                        do await newStep(); while (step === '|')
                     }
-                    state.emit('ended');
+                    console.log('ending: ');
+                    // noinspection StatementWithEmptyBodyJS
+                    do await newStep(); while (!step.startsWith(step2))
+                    do await newStep(); while (step === '|')
                 }
-            })
-        await page.exposeFunction('sub', (type, ...args) => {
-            console.log(type)
-            state.emit(type, args)
+                state.emit('ended');
+            }
         })
+    await page.exposeFunction('sub', (type, ...args) => {
+        console.log(type)
+        state.emit(type, args)
+    })
 // options
-        await page.evaluate((b) => {
-            b.subscribe(window.sub)
-            b.ignoreNicks = true
-            b.scene.updateAcceleration()
-        }, battle)
+    await page.evaluate((b) => {
+        b.subscribe(window.sub)
+        b.ignoreNicks = true
+        b.scene.updateAcceleration()
+    }, battle)
 
-        const innerbattle = await page.waitForSelector('.innerbattle');
-        const crop = await Promise.all(
-            Array.of(
-                Promise.resolve(innerbattle),
-                ...['.leftbar', '.rightbar'].map((bar,) => innerbattle.$(bar))
-            ).map((i,) => i.then(e => e.boundingBox()))
-        ).then(([box, l, r]) => {
-            box.x = l.x + l.width
-            box.width -= l.width + r.width
-            return box
-        })
+    const innerbattle = await page.waitForSelector('.innerbattle');
+    const crop = await Promise.all(
+        Array.of(
+            Promise.resolve(innerbattle),
+            ...['.leftbar', '.rightbar'].map((bar,) => innerbattle.$(bar))
+        ).map((i,) => i.then(e => e.boundingBox()))
+    ).then(([box, l, r]) => {
+        box.x = l.x + l.width
+        box.width -= l.width + r.width
+        return box
+    })
 
-        let file = 'test'
+    let file = 'test'
 
-        await new Promise(async (resolve) => {
-            const {start, step1} = turnData
-            if (start) {
-                await battle.evaluate((b, start) => b.seekTurn(start, true), start)
-            }
-            await new Promise(resolve => setTimeout(resolve, 100))
-            await battle.evaluate(b => b.play())
-            if (step1) {
-                console.log(step1)
-                let step = null;
-                let lastStep;
-                do {
-                    lastStep = step;
-                    step = await battle.evaluate(b => b.stepQueue[b.currentStep])
-                    if (lastStep !== step) console.log(step)
-                } while (!step.startsWith(step1))
-                // wait for the message to go away
-                const getMsg = () => page.$$eval('*[class="messagebar message"]', els => els.map(e => e.textContent))
-                let msg = String(await getMsg());
-                console.log(msg);
-                let newmsg;
-                do {
-                    newmsg = String(await getMsg());
-                } while (newmsg === msg)
-                console.log(newmsg)
-            }
-            resolve()
-        })
-        let recorder = await page.screencast({path: `${file}.webm`, crop})
-        if (turnData && turnData.start === turnData.end) state.emit('turn')
+    await new Promise(async (resolve) => {
+        const {start, step1} = turnData
+        if (start) {
+            await battle.evaluate((b, start) => b.seekTurn(start, true), start)
+        }
+        await new Promise(resolve => setTimeout(resolve, 100))
+        await battle.evaluate(b => b.play())
+        if (step1) {
+            console.log(step1)
+            let step = null;
+            let lastStep;
+            do {
+                lastStep = step;
+                step = await battle.evaluate(b => b.stepQueue[b.currentStep])
+                if (lastStep !== step) console.log(step)
+            } while (!step.startsWith(step1))
+            // wait for the message to go away
+            const getMsg = () => page.$$eval('*[class="messagebar message"]', els => els.map(e => e.textContent))
+            let msg = String(await getMsg());
+            console.log(msg);
+            let newmsg;
+            do newmsg = String(await getMsg()); while (newmsg === msg)
+            console.log(newmsg)
+        }
+        resolve()
+    })
+    let recorder = await page.screencast({path: `${file}.webm`, crop})
+    if (turnData && turnData.start === turnData.end) state.emit('turn')
 
 // now to get it to actually stop when I want, lol.
 
-        await new Promise(resolve => state.once('ended', resolve))
-        await recorder.stop()
-        await Promise.all([
-            fixwebm(`${file}.webm`),
-            page.close()
-        ])
-    }
-)
-()
+    await new Promise(resolve => state.once('ended', resolve))
+    await recorder.stop()
+    await Promise.all([
+        fixwebm(`${file}.webm`),
+        page.close()
+    ])
+}
 
 async function fixwebm(file) {
     return new Promise((resolve, reject) => {
@@ -265,7 +264,7 @@ async function makeGif(file) {
             .addInput(palette)
             .addInputOption("-filter_complex paletteuse")
             //.addInputOption("-r 10")
-            .outputFPS(15) // todo automatically determine fps by duration
+            //.outputFPS(15) // todo automatically determine fps by duration
             .save(gif)
         )
     )
