@@ -37,13 +37,14 @@ console.log(turnData)
 const PREFIX = 'https://replay.pokemonshowdown.com/';
 if (!src.startsWith(PREFIX)) src = PREFIX + src
 
-const browser = launch({headless: false});
+const $browser = launch({headless: false});
 let usedFirstPage = false
-download(browser, src, turnData)
+download(src, turnData)
     .then(process.exit)
 
-async function download(browser, src, turnData) {
-    browser = await browser
+async function download(src, turnData) {
+    let browser = await $browser // stupid typing stuff
+
     /// get page to work with
     const page = await (async () => {
         if (!usedFirstPage) {
