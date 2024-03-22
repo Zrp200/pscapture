@@ -128,8 +128,8 @@ if (!src.startsWith(PREFIX)) src = PREFIX + src
                         do await newStep(); while (!step.startsWith(step2))
                         do await newStep(); while (step === '|')
                     }
+                    state.emit('ended');
                 }
-                state.emit('ended');
             })
         await page.exposeFunction('sub', (type, ...args) => {
             console.log(type)
