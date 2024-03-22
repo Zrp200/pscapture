@@ -44,6 +44,15 @@ download(browser, src, turnData)
 
 async function download(browser, src, turnData) {
     browser = await browser
+    /// get page to work with
+    const page = await (async () => {
+        if (!usedFirstPage) {
+            let pages = await browser.pages();
+            if (pages[0]) return pages[0];
+        }
+        return browser.newPage()
+    })();
+
     const log = new Promise(resolve => {
         browser.newPage()
             .then(page => page
@@ -55,7 +64,6 @@ async function download(browser, src, turnData) {
                 })
             )
     })
-    const page = usedFirstPage ? await browser.newPage() : (usedFirstPage = true) && (await browser.pages)[0] // use default page
     await Promise.all([
         ['font-awesome', 'battle', 'replay', 'utilichart',]
             .map(url => page.addStyleTag({url: `https://play.pokemonshowdown.com/style/${url}.css?a7`})),
@@ -164,7 +172,7 @@ async function download(browser, src, turnData) {
         if (start) {
             await battle.evaluate((b, start) => b.seekTurn(start, true), start)
         }
-        await new Promise(resolve => setTimeout(resolve, 100))
+        await new Promise(resolve => setTimeout(resolve, 100)) // fixme figure out a good way to determine if things are loaded
         await battle.evaluate(b => b.play())
         if (step1) {
             console.log(step1)
