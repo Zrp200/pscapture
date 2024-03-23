@@ -186,8 +186,8 @@ async function download(src, turnData) {
                 step = await battle.evaluate(b => b.stepQueue[b.currentStep])
                 if (lastStep !== step) console.log(step)
             } while (!step.startsWith(step1))
-            // wait for the message to go away
-            const getMsg = () => page.$$eval('*[class="messagebar message"]', els => els.map(e => e.textContent))
+            const msgbar = await page.$('div[class="messagebar message"]')
+            const getMsg = () => msgbar.evaluate(els => els.textContent)
             let msg = String(await getMsg());
             console.log(msg);
             let newmsg;
