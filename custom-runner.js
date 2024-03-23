@@ -138,9 +138,8 @@ async function download(src, turnData) {
                         }
                     }
                     console.log('ending: ');
-                    // noinspection StatementWithEmptyBodyJS
                     do await newStep(); while (!step.startsWith(step2))
-                    do await newStep(); while (step === '|')
+                    do await newStep(); while (step === '|' || step.startsWith('|-')) // accompanying minor actions should be included
                 }
                 state.emit('ended');
             }
