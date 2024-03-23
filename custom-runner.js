@@ -85,7 +85,9 @@ async function download(src, turnData) {
             'data/teambuilder-tables.js?a7',
             'js/battle-tooltips.js?a7',
             'js/battle.js?a7'
-        ].map(url => page.addScriptTag({url: `https://play.pokemonshowdown.com/${url}`})),
+        ].map(url => () => page.addScriptTag({url: `https://play.pokemonshowdown.com/${url}`}))
+            // force all of them to load in order
+            .reduce((i,v) => i.then(v), Promise.resolve()),
     ].flat())
     const Battle = await page.evaluateHandle("Battle")
     const wrapper = await page.evaluateHandle(() => {
