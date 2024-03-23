@@ -9,16 +9,19 @@ const fs = require("fs")
 const open = require('opener')
 
 
-const {reverse, _: [src, turnArg]} = yargs(process.argv.slice(2))
+const {reverse, gif, _: [src, turnArg]} = yargs(process.argv.slice(2))
     .option("reverse", {
         alias: 'r',
         describe: 'reverse',
         type: 'boolean',
         default: false,
-    }).argv;
-const {reverse} = argv
-let [src, turnArg] = argv._
-
+    })
+    .option("gif", {
+        describe: "generate a gif with this input",
+        type: 'boolean',
+        default: true,
+    })
+    .argv;
 
 let turnData = (() => {
     let match = RegExp('(?<start>\\d+)(?<step1>\\|[^|]*\\|)?(?<to>-(?<end>\\d+)?(?<step2>\\|[^|]+\\|)?)?')
@@ -159,7 +162,7 @@ async function download(src, turnData) {
                     }
                     console.log('ending: ');
                     do await newStep(); while (!step.startsWith(step2))
-                    do await newStep(); while (step === '|' || step.startsWith('|-')) // accompanying minor actions should be included
+                    do await newStep(); while (step.startsWith('|-')) // accompanying minor actions should be included
                 }
                 state.emit('ended');
             }
@@ -223,7 +226,7 @@ async function download(src, turnData) {
     await new Promise(resolve => state.once('ended', resolve))
     await recorder.stop()
     await Promise.all([
-        fixwebm(file),
+        fixwebm(file).then(() => gif && makeGif(file)),
         page.close()
     ])
 }
@@ -239,8 +242,7 @@ async function fixwebm(file) {
             .on("end", () => {
                 fs.rmSync(file)
                 fs.renameSync(tmp, file)
-                open(file)
-                resolve(makeGif(file))
+                open(file, resolve)
             })
             .on("error", (err) => {
                 console.error("Error fixing metadata:", err)
