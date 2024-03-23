@@ -281,7 +281,7 @@ async function makeGif(file) {
         .finally(() => {
             // if(isMultiBar) _bar.remove(bar)
             fs.rmSync(palette)
-            return open(gif)
+            return new Promise(resolve => open(gif, resolve))
         })
         .catch(() => {
         }) // do nothing
