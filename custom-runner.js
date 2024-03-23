@@ -285,17 +285,6 @@ async function makeGif(file) {
         })
         .on('error', reject)
 
-    const resized = filename + '.resize.webm'
-    /*return new Promise((resolve, reject) => withBar(resolve, reject,
-            ffmpeg(file)
-                .inputOptions('-y')
-                .videoFilter([
-                    "crop=1200:890:200:5",
-                    "scale=600:-1",
-                ])
-                .save(resized)
-        )
-    ).then(() =>*/
     return new Promise((resolve, reject) =>
         withBar(resolve, reject, ffmpeg(file))
             .videoFilter('palettegen')
