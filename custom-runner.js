@@ -253,6 +253,7 @@ async function fixwebm(file) {
 
 async function makeGif(file) {
     // const bar = isMultiBar ? _bar.create() : _bar
+    await mkdir[GIF]
     console.log('starting Gif creation')
     const filename = path.basename(file, path.extname(file))
     const gif = path.join(GIF, filename + '.gif')
