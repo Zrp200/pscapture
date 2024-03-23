@@ -220,8 +220,7 @@ async function fixwebm(file) {
                 fs.rmSync(file)
                 fs.renameSync(tmp, file)
                 open(file)
-                makeGif(file)
-                resolve()
+                resolve(makeGif(file))
             })
             .on("error", (err) => {
                 console.error("Error fixing metadata:", err)
