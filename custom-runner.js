@@ -9,7 +9,7 @@ const fs = require("fs")
 const open = require('opener')
 
 
-const {reverse, gif, _: [src, turnArg]} = yargs(process.argv.slice(2))
+const {reverse, gif, speed, _: [src, turnArg]} = yargs(process.argv.slice(2))
     .option("reverse", {
         alias: 'r',
         describe: 'reverse',
@@ -21,6 +21,12 @@ const {reverse, gif, _: [src, turnArg]} = yargs(process.argv.slice(2))
         type: 'boolean',
         default: true,
     })
+    .option("speed",
+        {
+            describe: 'how fast messages go away. Default is 100. Standard Replay Speed is 300, Fast would be 50.',
+            default: 100,
+            type: "number",
+        })
     .argv;
 
 let turnData = (() => {
@@ -172,11 +178,13 @@ async function download(src, turnData) {
         state.emit(type, args)
     })
 // options
-    await page.evaluate((b) => {
+    await battle.evaluate((b, speed) => {
         b.subscribe(window.sub)
         b.ignoreNicks = true
-        b.scene.updateAcceleration()
-    }, battle)
+        b.messageFadeTime = speed;
+        b.messageShownTime = 1;
+        b.scene.updateAcceleration();
+    }, speed)
 
     const innerbattle = await page.waitForSelector('.innerbattle');
     const crop = await Promise.all(
