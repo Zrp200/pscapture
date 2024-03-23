@@ -107,7 +107,7 @@ async function download(src, turnData) {
             'js/battle.js?a7'
         ].map(url => () => page.addScriptTag({url: `https://play.pokemonshowdown.com/${url}`}))
             // force all of them to load in order
-            .reduce((i,v) => i.then(v), Promise.resolve()),
+            .reduce((i, v) => i.then(v), Promise.resolve()),
     ].flat())
     const Battle = await page.evaluateHandle("Battle")
     const wrapper = await page.evaluateHandle(() => {
@@ -194,7 +194,6 @@ async function download(src, turnData) {
         if (start) {
             await battle.evaluate((b, start) => b.seekTurn(start, true), start)
         }
-        await new Promise(resolve => setTimeout(resolve, 100)) // fixme figure out a good way to determine if things are loaded
         await battle.evaluate(b => b.play())
         if (step1) {
             console.log(step1)
