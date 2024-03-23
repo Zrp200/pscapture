@@ -9,7 +9,7 @@ const fs = require("fs")
 const open = require('opener')
 
 
-const {reverse, gif, speed, _: [src, turnArg]} = yargs(process.argv.slice(2))
+const {reverse, gif, speed, _: [src, turnData]} = yargs(process.argv.slice(2))
     .option("reverse", {
         alias: 'r',
         describe: 'reverse',
@@ -29,23 +29,9 @@ const {reverse, gif, speed, _: [src, turnArg]} = yargs(process.argv.slice(2))
         })
     .argv;
 
-let turnData = (() => {
-    let match = RegExp('(?<start>\\d+)(?<step1>\\|[^|]*\\|)?(?<to>-(?<end>\\d+)?(?<step2>\\|[^|]+\\|)?)?')
-        .exec(turnArg);
-    if (!match) return {};
-    console.log(match.groups)
-    let {start, step1, end, step2, to} = match.groups;
-    start = parseInt(start)
-    return {
-        start,
-        end: parseInt(end || (to ? (step2 ? start : 0) : start + 1)),
-        step1, step2
-    }
-})();
-
-console.log(turnData)
 
 const PREFIX = 'https://replay.pokemonshowdown.com/';
+const turnSpec = RegExp('(?<start>\\d+)(?<step1>\\|[^|]*\\|)?(?<to>-(?<end>\\d+)?(?<step2>\\|[^|]+\\|)?)?')
 
 const folders =  ["webm", "gifs"]
 const [WEBM, GIF] = folders
@@ -60,18 +46,20 @@ let usedFirstPage = false
 download(!src.startsWith(PREFIX) ? PREFIX + src : src, turnData)
     .then(process.exit)
 
-function fileName(src) {
-    let name = src.replace(PREFIX, '').replaceAll('?', '')
-    if (turnArg) {
-        return name + '_' + turnArg
-            .replaceAll('-', '~')
-            .replaceAll('|', '$')
-            .replaceAll(RegExp('[$](?=~|$)', 'g'), '')
-    }
-    return name
-}
-
 async function download(src, turnData) {
+
+    let {start, end, step1, step2} = function () {
+        let match = turnSpec.exec(turnData);
+        if (!match) return {};
+        console.log(match.groups)
+        let {start, end, step2, to} = match.groups;
+        return {
+            ...match.groups,
+            start: start = parseInt(start),
+            end: parseInt(end || (to ? (step2 ? start : 0) : start + 1)),
+        }
+    }();
+
     let browser = await $browser // stupid typing stuff
 
     /// get page to work with
@@ -147,31 +135,28 @@ async function download(src, turnData) {
     }
     let state = new EventEmitter()
         .on('turn', async () => {
-            const {end} = turnData
             if (!end) return
             const turn = await page.evaluate(b => b.turn, battle);
-            if (turn >= end) {
-                const {step2} = turnData
-                if (step2) {
-                    // search for end action
-                    let step = null
-                    const newStep = async () => {
-                        let prev
-                        while (true) {
-                            prev = step
-                            step = await battle.evaluate(b => b.stepQueue[b.currentStep])
-                            if (prev !== step) {
-                                console.log(step)
-                                return step;
-                            }
+            if (turn < end) return;
+            if (step2) {
+                // search for end action
+                let step = null
+                const newStep = async () => {
+                    let prev
+                    while (true) {
+                        prev = step
+                        step = await battle.evaluate(b => b.stepQueue[b.currentStep])
+                        if (prev !== step) {
+                            console.log(step)
+                            return step;
                         }
                     }
-                    console.log('ending: ');
-                    do await newStep(); while (!step.startsWith(step2))
-                    do await newStep(); while (step.startsWith('|-')) // accompanying minor actions should be included
                 }
-                state.emit('ended');
+                console.log('ending: ');
+                do await newStep(); while (!step.startsWith(step2))
+                do await newStep(); while (step.startsWith('|-')) // accompanying minor actions should be included
             }
+            state.emit('ended');
         })
     await page.exposeFunction('sub', (type, ...args) => {
         console.log(type)
@@ -183,6 +168,7 @@ async function download(src, turnData) {
         b.ignoreNicks = true
         b.messageFadeTime = speed;
         b.messageShownTime = 1;
+        // noinspection JSUnresolvedReference
         b.scene.updateAcceleration();
     }, speed)
 
@@ -198,10 +184,15 @@ async function download(src, turnData) {
         return box
     })
 
-    let file = fileName(src)
+    let file = src.replace(PREFIX, '').replaceAll('?', '')
+    if (turnData) {
+        file += '_' + turnData
+            .replaceAll('-', '~')
+            .replaceAll('|', '$')
+            .replaceAll(RegExp('[$](?=~|$)', 'g'), '')
+    }
 
     await new Promise(async (resolve) => {
-        const {start, step1} = turnData
         if (start) {
             await battle.evaluate((b, start) => b.seekTurn(start, true), start)
         }
