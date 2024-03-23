@@ -3,11 +3,13 @@ const yargs = require("yargs")
 const {PuppeteerScreenRecorder} = require('puppeteer-screen-recorder');
 const puppeteer = require("puppeteer");
 const ffmpeg = require("fluent-ffmpeg")
+
+const path = require("path")
 const fs = require("fs")
 const open = require('opener')
 
 
-const argv = yargs(process.argv.slice(2))
+const {reverse, _: [src, turnArg]} = yargs(process.argv.slice(2))
     .option("reverse", {
         alias: 'r',
         describe: 'reverse',
@@ -35,12 +37,30 @@ let turnData = (() => {
 console.log(turnData)
 
 const PREFIX = 'https://replay.pokemonshowdown.com/';
-if (!src.startsWith(PREFIX)) src = PREFIX + src
+
+const folders =  ["webm", "gifs"]
+const [WEBM, GIF] = folders
+let mkdir = function () {
+    let res = {}
+    for (let folder in folders) res[folder] = new Promise(resolve => fs.mkdir(folder, resolve))
+    return res
+}()
 
 const $browser = launch({headless: false});
 let usedFirstPage = false
-download(src, turnData)
+download(!src.startsWith(PREFIX) ? PREFIX + src : src, turnData)
     .then(process.exit)
+
+function fileName(src) {
+    let name = src.replace(PREFIX, '').replaceAll('?', '')
+    if (turnArg) {
+        return name + '_' + turnArg
+            .replaceAll('-', '~')
+            .replaceAll('|', '$')
+            .replaceAll(RegExp('[$](?=~|$)', 'g'), '')
+    }
+    return name
+}
 
 async function download(src, turnData) {
     let browser = await $browser // stupid typing stuff
@@ -167,7 +187,7 @@ async function download(src, turnData) {
         return box
     })
 
-    let file = 'test'
+    let file = fileName(src)
 
     await new Promise(async (resolve) => {
         const {start, step1} = turnData
@@ -195,7 +215,8 @@ async function download(src, turnData) {
         }
         resolve()
     })
-    let recorder = await page.screencast({path: `${file}.webm`, crop})
+    await mkdir[WEBM]; // just ensure that it's done
+    let recorder = await page.screencast({path: (file = path.resolve(WEBM, `${file}.webm`)), crop})
     if (turnData && turnData.start === turnData.end) state.emit('turn')
 
 // now to get it to actually stop when I want, lol.
@@ -203,15 +224,16 @@ async function download(src, turnData) {
     await new Promise(resolve => state.once('ended', resolve))
     await recorder.stop()
     await Promise.all([
-        fixwebm(`${file}.webm`),
+        fixwebm(file),
         page.close()
     ])
 }
 
 async function fixwebm(file) {
     return new Promise((resolve, reject) => {
-        const tmp = file + '.tmp.webm'
+        const tmp = file + '.tmp'
         const command = ffmpeg(file)
+            .format('webm')
             .withVideoCodec("copy")
             .withAudioCodec("copy") // Copy the video and audio streams without re-encoding
             .output(tmp)
@@ -233,9 +255,9 @@ async function fixwebm(file) {
 async function makeGif(file) {
     // const bar = isMultiBar ? _bar.create() : _bar
     console.log('starting Gif creation')
-    const [filename,] = file.split('.', 1)
-    const palette = filename + '.png'
-    const gif = filename + '.gif'
+    const filename = path.basename(file, path.extname(file))
+    const gif = path.join(GIF, filename + '.gif')
+    const palette = file + '.png'
     const withBar = (resolve, reject, s) => s
         .on('start', (cmd) => {
             console.log(cmd)
@@ -271,6 +293,7 @@ async function makeGif(file) {
     ).then(() => new Promise((resolve, reject) => withBar(resolve, reject, ffmpeg())
             .addInput(file)
             .addInput(palette)
+            .addInputOption('-y')
             .addInputOption("-filter_complex paletteuse")
             //.addInputOption("-r 10")
             //.outputFPS(15) // todo automatically determine fps by duration
