@@ -9,7 +9,7 @@ const fs = require("fs")
 const open = require('opener')
 
 
-const {reverse, gif, speed, show, _: [src, turnData]} = yargs(process.argv.slice(2))
+const {reverse, gif, speed, fadespeed, show, _: [src, turnData]} = yargs(process.argv.slice(2))
     .option("reverse", {
         alias: 'r',
         describe: 'reverse',
@@ -24,8 +24,14 @@ const {reverse, gif, speed, show, _: [src, turnData]} = yargs(process.argv.slice
     })
     .option("speed",
         {
-            describe: 'how fast messages go away. Default is 100. Standard Replay Speed is 300, Fast would be 50.',
-            default: 100,
+            describe: 'factor to speed up output',
+            default: 1,
+            type: "number",
+        })
+    .option("fadespeed",
+        {
+            describe: 'how fast messages go away. Standard "fast" would be 6x',
+            default: 1,
             type: "number",
         })
     .argv;
@@ -167,11 +173,12 @@ async function download(src, turnData) {
     await battle.evaluate((b, speed) => {
         b.subscribe(window.sub)
         b.ignoreNicks = true
-        b.messageFadeTime = speed;
+        b.messageFadeTime = 300/speed;
         b.messageShownTime = 1;
+        b.setMute(true); // we don't support sound right now
         // noinspection JSUnresolvedReference
         b.scene.updateAcceleration();
-    }, speed)
+    }, fadespeed)
 
     let innerbattle = page.waitForSelector('.innerbattle');
     const crop =
@@ -229,7 +236,10 @@ async function download(src, turnData) {
         resolve()
     })
     await mkdir[WEBM]; // just ensure that it's done
-    let recorder = await page.screencast({path: (file = path.resolve(WEBM, `${file}.webm`)), crop})
+    let recorder = await page.screencast({
+        path: (file = path.resolve(WEBM, `${file}.webm`)),
+        crop, speed,
+    })
     if (turnData && turnData.start === turnData.end) state.emit('turn')
 
 // now to get it to actually stop when I want, lol.
