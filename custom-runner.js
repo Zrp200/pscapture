@@ -40,7 +40,7 @@ const {reverse, gif, speed, fadespeed, show, _: [src, turnData]} = yargs(process
 const PREFIX = 'https://replay.pokemonshowdown.com/';
 const turnSpec = RegExp('(?<start>\\d+)(?<step1>\\|[^|]*\\|)?(?<to>-(?<end>\\d+)?(?<step2>\\|[^|]+\\|)?)?')
 
-const folders =  ["webm", "gifs"]
+const folders = ["webm", "gifs"]
 const [WEBM, GIF] = folders
 let mkdir = function () {
     let res = {}
@@ -205,7 +205,7 @@ async function download(src, turnData) {
 
     let file = src.replace(PREFIX, '').replaceAll('?', '')
     if (turnData) {
-        file += '_' + turnData
+        file += '_' + String(turnData)
             .replaceAll('-', '~')
             .replaceAll('|', '$')
             .replaceAll(RegExp('[$](?=~|$)', 'g'), '')
