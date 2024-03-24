@@ -9,13 +9,14 @@ const fs = require("fs")
 const open = require('opener')
 
 
-const {reverse, gif, speed, _: [src, turnData]} = yargs(process.argv.slice(2))
+const {reverse, gif, speed, show, _: [src, turnData]} = yargs(process.argv.slice(2))
     .option("reverse", {
         alias: 'r',
         describe: 'reverse',
         type: 'boolean',
         default: false,
     })
+    .option('show', {choices: [false, 'teams', "chat"],})
     .option("gif", {
         describe: "generate a gif with this input",
         type: 'boolean',
@@ -172,17 +173,28 @@ async function download(src, turnData) {
         b.scene.updateAcceleration();
     }, speed)
 
-    const innerbattle = await page.waitForSelector('.innerbattle');
-    const crop = await Promise.all(
-        Array.of(
-            Promise.resolve(innerbattle),
-            ...['.leftbar', '.rightbar'].map((bar,) => innerbattle.$(bar))
-        ).map((i,) => i.then(e => e.boundingBox()))
-    ).then(([box, l, r]) => {
-        box.x = l.x + l.width
-        box.width -= l.width + r.width
-        return box
-    })
+    let innerbattle = page.waitForSelector('.innerbattle');
+    const crop =
+        show === 'chat' ?
+            await Promise.all(['.battle', '.battle-log']
+                .map(c => page.$(c).then(i => i.boundingBox())))
+                .then(([battle, log]) => ({
+                    width: battle.width + log.width,
+                    height: Math.max(battle.height, log.height),
+                    x: battle.x,
+                    y: Math.min(battle.y, log.y)
+                })) :
+            show === 'teams' ? await innerbattle.then(i => i.boundingBox())
+                : await Promise.all(
+                    Array.of(
+                        Promise.resolve(innerbattle = await innerbattle),
+                        ...['.leftbar', '.rightbar'].map((bar,) => innerbattle.$(bar))
+                    ).map((i,) => i.then(e => e.boundingBox()))
+                ).then(([box, l, r]) => {
+                    box.x = l.x + l.width
+                    box.width -= l.width + r.width
+                    return box
+                })
 
     let file = src.replace(PREFIX, '').replaceAll('?', '')
     if (turnData) {
