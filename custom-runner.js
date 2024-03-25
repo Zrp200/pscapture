@@ -8,7 +8,7 @@ const path = require("path")
 const fs = require("fs")
 const open = require('opener')
 
-const turnSpec = RegExp('(?<start>\\d+)(?<step1>\\|[^|]*\\|)?(?<to>-(?<end>\\d+)?(?<step2>\\|[^|]+\\|)?)?')
+const turnSpec = RegExp('^(?<start>\\d+)(?<step1>\\|[^-]*)?(?<to>-(?<end>\\d+)?(?<step2>\\|.+)?)?')
 const PREFIX = 'https://replay.pokemonshowdown.com/';
 
 const folders = ["webm", "gifs"]
@@ -106,6 +106,7 @@ async function download(
         fadespeed = 1,
         gif = true
     }, id) {
+    if (!src.startsWith(PREFIX)) src = PREFIX + src;
     let {start, end, step1, step2} = function () {
         let match = turnSpec.exec(turnData);
         if (!match) return {};
