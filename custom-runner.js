@@ -111,12 +111,12 @@ async function download(
         let match = turnSpec.exec(turnData);
         if (!match) return {};
         console.log(match.groups)
-        let {start, end, step2, to} = match.groups;
+        let {start, end, to} = match.groups;
         start = parseInt(start)
         return {
             ...match.groups,
             start,
-            end: parseInt(end || (step2 ? 0 : start + 1)),
+            end: parseInt(end || (to ? 0 : start + 1)),
         }
     }();
 
@@ -204,6 +204,7 @@ async function download(
         const endOfTurn = () => step.startsWith('|turn') && prev != null && prev !== step
         do {
             await newStep();
+            if (!step) return
             if (endOfTurn()) {
                 console.log([id, `hit end of turn while looking for ${step2}`])
                 if (end) return;
@@ -219,7 +220,7 @@ async function download(
             if (turn === end && step2) await seekEndStep()
             resolve();
         })
-        else state.on('record', () => resolve(seekEndStep()))
+        else if (step2) state.on('record', () => resolve(seekEndStep()))
         state
             .on('ended', resolve)
             .on('atqueueend', resolve)
