@@ -305,9 +305,15 @@ async function download(
     await battleEnd
     await recorder.stop()
     await Promise.all([
-        fixwebm(file).then(() => gif && makeGif(file)),
+        fixwebm(file).then(() => {
+            if (gif) {
+                console.log([id, 'gif']);
+                return makeGif(file);
+            }
+        }),
         page.close()
     ])
+    console.log([id, 'complete'])
 }
 
 async function fixwebm(file) {
@@ -332,16 +338,15 @@ async function fixwebm(file) {
     })
 }
 
-async function makeGif(file) {
+async function makeGif(file, verbose=false) {
     // const bar = isMultiBar ? _bar.create() : _bar
     await mkdir[GIF]
-    console.log('starting Gif creation')
     const filename = path.basename(file, path.extname(file))
     const gif = path.join(GIF, filename + '.gif')
     const palette = file + '.png'
     const withBar = (resolve, reject, s) => s
         .on('start', (cmd) => {
-            console.log(cmd)
+            if(verbose) console.log(cmd)
             // bar.start(100, 0)
         })
         .on('progress', ({percent}) => {
