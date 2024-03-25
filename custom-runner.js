@@ -22,6 +22,7 @@ let mkdir = function () {
 const $browser = launch({headless: true});
 
 let {argv: {_: argv, bulk}} = yargs(process.argv.slice(2))
+    .parserConfiguration({"unknown-options-as-args": true})
     .option('bulk', {
         alias: 'b',
         describe: "How many instances to run at once, if giving more than one argument",
@@ -105,7 +106,7 @@ async function download(
         fadespeed = 1,
         gif = true
     }, id) {
-    console.log([id, [src, turnData, reverse, speed, fadespeed, gif]])
+    console.log([id, [src, turnData, show, reverse, speed, fadespeed, gif]])
     let {start, end, step1, step2} = function () {
         let match = turnSpec.exec(turnData);
         if (!match) return {};
