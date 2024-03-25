@@ -19,7 +19,7 @@ let mkdir = function () {
     return res
 }()
 
-const $browser = launch({headless: false});
+const $browser = launch({headless: true});
 
 let {argv: {_: argv, bulk}} = yargs(process.argv.slice(2))
     .option('bulk', {
@@ -34,7 +34,7 @@ const parts = function () {
     let last = 0;
     for (let i = last; i <= argv.length; i++) {
         // todo find a clean way to split args
-        if (i === argv.length || argv[i] === ':') {
+        if (i === argv.length || argv[i] === ':' || argv[i] === '\n') {
             let slice = argv.slice(last, i)
             last = i + 1
             if (!slice) continue
