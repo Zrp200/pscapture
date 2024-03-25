@@ -277,38 +277,32 @@ async function download(
             .replaceAll(RegExp('[$](?=~|$)', 'g'), '')
     }
 
-    await new Promise(async (resolve) => {
-        if (start) {
-            await battle.evaluate((b, start) => b.seekTurn(start, true), start)
+    if (start) {
+        await battle.evaluate((b, start) => b.seekTurn(start, true), start)
+    }
+    if (step1) {
+        while (true) {
+            let thisStep = await battle.evaluate(b => b.stepQueue[b.currentStep()]);
+            console.log([id, thisStep])
+            if (thisStep.startsWith(step1)) break
+            await battle.evaluate(b => {
+                b.play() // call next step
+                b.pause() // halt for processing
+            })
         }
-        await battle.evaluate(b => b.play())
-        if (step1) {
-            let step = null;
-            let lastStep;
-            do {
-                lastStep = step;
-                step = await battle.evaluate(b => b.stepQueue[b.currentStep])
-                if (lastStep !== step) console.log([id, step])
-            } while (!step.startsWith(step1))
-            const msgbar = await page.$('div[class="messagebar message"]')
-            const getMsg = () => msgbar.evaluate(els => els.textContent)
-            let msg = String(await getMsg());
-            console.log([id, msg]);
-            let newmsg;
-            do newmsg = String(await getMsg()); while (newmsg === msg)
-            console.log([id, newmsg])
-        }
-        resolve()
-    })
+    }
+
     await mkdir[WEBM]; // just ensure that it's done
     let recorder = await page.screencast({
         path: (file = path.resolve(WEBM, `${file}.webm`)),
         crop, speed,
     })
-    state.emit('record')
-
-// now to get it to actually stop when I want, lol.
-
+    recorder.pause()
+    state.once('playing', () => {
+        recorder.resume()
+        state.emit('record')
+    });
+    await battle.evaluate(b => b.play())
     await battleEnd
     await recorder.stop()
     await Promise.all([
