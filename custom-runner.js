@@ -272,7 +272,7 @@ async function download(
     if (e !== -1) e = name.indexOf('-', e + 1)
     if (e !== -1) name = name.substring(0, e)
     if (turnData) {
-        file += '_' + String(turnData)
+        name += '_' + String(turnData)
             .replaceAll('-', '~')
             .replaceAll('|', '$')
             .replaceAll(RegExp('[$](?=~|$)', 'g'), '')
@@ -294,14 +294,16 @@ async function download(
     }
 
     await mkdir[WEBM]; // just ensure that it's done
+    let file = path.resolve(WEBM, `${name}.webm`)
     let recorder = await page.screencast({
-        path: (file = path.resolve(WEBM, `${file}.webm`)),
+        path: file,
         crop, speed,
     })
     recorder.pause()
     state.once('playing', () => {
         recorder.resume()
         state.emit('record')
+        console.log([id, 'recording - ' + name])
     });
     await battle.evaluate(b => b.play())
     await battleEnd
@@ -315,7 +317,7 @@ async function download(
         }),
         page.close()
     ])
-    console.log([id, 'complete'])
+    console.log([id, 'complete - ' + name])
 }
 
 async function fixwebm(file) {
@@ -331,11 +333,7 @@ async function fixwebm(file) {
                 fs.renameSync(tmp, file)
                 open(file, resolve)
             })
-            .on("error", (err) => {
-                let e = new Error("Unable to fix metadata")
-                e.cause = err
-                reject(e)
-            })
+            .on("error", (cause) => reject(new Error("Unable to fix metadata", {cause})))
 
         command.run()
     })
