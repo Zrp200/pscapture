@@ -262,7 +262,13 @@ async function download(
                     return box
                 })
 
+    // only keep the first part, this keeps private replays private
+
     let file = src.replace(PREFIX, '').replaceAll('?', '')
+    let e = file.indexOf('-')
+    // second occurrence
+    if (e !== -1) e = file.indexOf('-', e+1)
+    if (e !== -1) file = file.substring(0, e)
     if (turnData) {
         file += '_' + String(turnData)
             .replaceAll('-', '~')
