@@ -215,6 +215,7 @@ async function download(
     const battleEnd = new Promise(resolve => {
         if (end) state.on('turn', async () => {
             const turn = await page.evaluate(b => b.turn, battle);
+            console.log([id, 'turn ' + turn])
             if (turn < end) return;
             if (turn === end && step2) await seekEndStep()
             resolve();
@@ -226,8 +227,8 @@ async function download(
     })
 
     await page.exposeFunction('sub', (type, ...args) => {
-        console.log([id, type])
-        state.emit(type, args)
+        // turn has custom logic since 'turn' is super useless by itself
+        if (state.emit(type, args) && type !== 'turn') console.log([id, type])
     })
 // options
     await battle.evaluate((b, speed) => {
@@ -265,11 +266,11 @@ async function download(
 
     // only keep the first part, this keeps private replays private
 
-    let file = src.replace(PREFIX, '').replaceAll('?', '')
-    let e = file.indexOf('-')
+    let name = src.replace(PREFIX, '').replaceAll('?', '')
+    let e = name.indexOf('-')
     // second occurrence
-    if (e !== -1) e = file.indexOf('-', e+1)
-    if (e !== -1) file = file.substring(0, e)
+    if (e !== -1) e = name.indexOf('-', e + 1)
+    if (e !== -1) name = name.substring(0, e)
     if (turnData) {
         file += '_' + String(turnData)
             .replaceAll('-', '~')
