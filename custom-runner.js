@@ -79,7 +79,7 @@ const awaitSync = promises => promises.reduce((pre, cur) => pre.then(cur), Promi
 
 
 // parallelism check
-let actions = parts.map((value, index) => () => download(value))
+let actions = parts.map((value, index) => () => download(value, index))
 let n = parts.length === 1 || (bulk || bulk === 1) && (bulk >= parts.length || bulk === true ? true : Math.ceil(parts.length / bulk));
 (!n ? awaitSync(actions)
     : Promise.all(
@@ -89,7 +89,6 @@ let n = parts.length === 1 || (bulk || bulk === 1) && (bulk >= parts.length || b
                 let res = []
                 let i = 0;
                 while (i < n) {
-                    console.log(i)
                     res.push(awaitSync(actions.slice(n * i, n * ++i)))
                 }
                 return res;
@@ -105,30 +104,25 @@ async function download(
         speed = 1,
         fadespeed = 1,
         gif = true
-    }, useFirstPage = false) {
-    console.log(src, turnData, reverse, speed, fadespeed, gif)
+    }, id) {
+    console.log([id, [src, turnData, reverse, speed, fadespeed, gif]])
     let {start, end, step1, step2} = function () {
         let match = turnSpec.exec(turnData);
         if (!match) return {};
         console.log(match.groups)
         let {start, end, step2, to} = match.groups;
+        start = parseInt(start)
         return {
             ...match.groups,
-            start: start = parseInt(start),
-            end: parseInt(end || (to ? (step2 ? start : 0) : start + 1)),
+            start,
+            end: parseInt(end || (step2 ? 0 : start + 1)),
         }
     }();
 
     let browser = await $browser // stupid typing stuff
 
     /// get page to work with
-    const page = await async function () {
-        if (useFirstPage) {
-            let pages = await browser.pages();
-            if (pages[0]) return pages[0];
-        }
-        return browser.newPage()
-    }();
+    const page = await browser.newPage();
 
     const log = new Promise(resolve => {
         browser.newPage()
@@ -192,32 +186,46 @@ async function download(
         await battle.evaluate(b => b.switchViewpoint())
     }
     let state = new EventEmitter()
-        .on('turn', async () => {
-            if (!end) return
+    async function seekEndStep() {
+        // don't duplicate this logic
+        let prev, step = null
+        const newStep = async () => {
+            while (true) {
+                prev = step
+                step = await battle.evaluate(b => b.stepQueue[b.currentStep])
+                if (prev !== step) {
+                    // todo clean up debug code. This is actually useful sometimes to get a bit more accuracy in follow-up uses of the program
+                    console.log([id, step]);
+                    return step;
+                }
+            }
+        }
+        const endOfTurn = () => step.startsWith('|turn') && prev != null && prev !== step
+        do {
+            await newStep();
+            if (endOfTurn()) {
+                console.log([id, `hit end of turn while looking for ${step2}`])
+                if (end) return;
+            }
+        } while (!step.startsWith(step2))
+        do await newStep(); while (step.startsWith('|-' && !endOfTurn())) // accompanying minor actions should be included
+    }
+
+    const battleEnd = new Promise(resolve => {
+        if (end) state.on('turn', async () => {
             const turn = await page.evaluate(b => b.turn, battle);
             if (turn < end) return;
-            if (step2) {
-                // search for end action
-                let step = null
-                const newStep = async () => {
-                    let prev
-                    while (true) {
-                        prev = step
-                        step = await battle.evaluate(b => b.stepQueue[b.currentStep])
-                        if (prev !== step) {
-                            console.log(step)
-                            return step;
-                        }
-                    }
-                }
-                console.log('ending: ');
-                do await newStep(); while (!step.startsWith(step2))
-                do await newStep(); while (step.startsWith('|-')) // accompanying minor actions should be included
-            }
-            state.emit('ended');
+            if (turn === end && step2) await seekEndStep()
+            resolve();
         })
+        else state.on('record', () => resolve(seekEndStep()))
+        state
+            .on('ended', resolve)
+            .on('atqueueend', resolve)
+    })
+
     await page.exposeFunction('sub', (type, ...args) => {
-        console.log(type)
+        console.log([id, type])
         state.emit(type, args)
     })
 // options
@@ -268,21 +276,20 @@ async function download(
         }
         await battle.evaluate(b => b.play())
         if (step1) {
-            console.log(step1)
             let step = null;
             let lastStep;
             do {
                 lastStep = step;
                 step = await battle.evaluate(b => b.stepQueue[b.currentStep])
-                if (lastStep !== step) console.log(step)
+                if (lastStep !== step) console.log([id, step])
             } while (!step.startsWith(step1))
             const msgbar = await page.$('div[class="messagebar message"]')
             const getMsg = () => msgbar.evaluate(els => els.textContent)
             let msg = String(await getMsg());
-            console.log(msg);
+            console.log([id, msg]);
             let newmsg;
             do newmsg = String(await getMsg()); while (newmsg === msg)
-            console.log(newmsg)
+            console.log([id, newmsg])
         }
         resolve()
     })
@@ -291,11 +298,11 @@ async function download(
         path: (file = path.resolve(WEBM, `${file}.webm`)),
         crop, speed,
     })
-    if (turnData && turnData.start === turnData.end) state.emit('turn')
+    state.emit('record')
 
 // now to get it to actually stop when I want, lol.
 
-    await new Promise(resolve => state.once('ended', resolve))
+    await battleEnd
     await recorder.stop()
     await Promise.all([
         fixwebm(file).then(() => gif && makeGif(file)),
