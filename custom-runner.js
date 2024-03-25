@@ -336,8 +336,9 @@ async function fixwebm(file) {
                 open(file, resolve)
             })
             .on("error", (err) => {
-                console.error("Error fixing metadata:", err)
-                reject(err)
+                let e = new Error("Unable to fix metadata")
+                e.cause = err
+                reject(e)
             })
 
         command.run()
