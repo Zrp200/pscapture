@@ -8,37 +8,8 @@ const path = require("path")
 const fs = require("fs")
 const open = require('opener')
 
-
-const {reverse, gif, speed, fadespeed, show, _: [src, turnData]} = yargs(process.argv.slice(2))
-    .option("reverse", {
-        alias: 'r',
-        describe: 'reverse',
-        type: 'boolean',
-        default: false,
-    })
-    .option('show', {choices: [false, 'teams', "chat"],})
-    .option("gif", {
-        describe: "generate a gif with this input",
-        type: 'boolean',
-        default: true,
-    })
-    .option("speed",
-        {
-            describe: 'factor to speed up output',
-            default: 1,
-            type: "number",
-        })
-    .option("fadespeed",
-        {
-            describe: 'how fast messages go away. Standard "fast" would be 6x',
-            default: 1,
-            type: "number",
-        })
-    .argv;
-
-
-const PREFIX = 'https://replay.pokemonshowdown.com/';
 const turnSpec = RegExp('(?<start>\\d+)(?<step1>\\|[^|]*\\|)?(?<to>-(?<end>\\d+)?(?<step2>\\|[^|]+\\|)?)?')
+const PREFIX = 'https://replay.pokemonshowdown.com/';
 
 const folders = ["webm", "gifs"]
 const [WEBM, GIF] = folders
@@ -49,12 +20,93 @@ let mkdir = function () {
 }()
 
 const $browser = launch({headless: false});
-let usedFirstPage = false
-download(!src.startsWith(PREFIX) ? PREFIX + src : src, turnData)
-    .then(process.exit)
 
-async function download(src, turnData) {
+let {argv: {_: argv, bulk}} = yargs(process.argv.slice(2))
+    .option('bulk', {
+        alias: 'b',
+        describe: "How many instances to run at once, if giving more than one argument",
+        default: true
+    })
 
+// split parts into sections
+const parts = function () {
+    let result = [];
+    let last = 0;
+    for (let i = last; i <= argv.length; i++) {
+        // todo find a clean way to split args
+        if (i === argv.length || argv[i] === ':') {
+            let slice = argv.slice(last, i)
+            last = i + 1
+            if (!slice) continue
+            const {argv: {_: [src, turnData], ...opts}} = yargs(slice)
+                .option("reverse", {
+                    alias: 'r',
+                    describe: 'reverse',
+                    type: 'boolean',
+                    //default: false,
+                })
+                .option('show', {choices: [false, 'teams', "chat"],})
+                .option("gif", {
+                    describe: "generate a gif with this input",
+                    type: 'boolean',
+                    //default: true,
+                })
+                .option("speed",
+                    {
+                        describe: 'factor to speed up output',
+                        //default: 1,
+                        type: "number",
+                    })
+                .option("fadespeed",
+                    {
+                        describe: 'how fast messages go away. Standard "fast" would be 6. Speeds up output slightly.',
+                        //default: 1,
+                        type: "number",
+                    })
+            if (src && !turnData && turnSpec.test(src)) {
+                if (result) {
+                    // use the previous one
+                    // currently this will just redo the whole thing, but in the future...maybe
+                    result.push({...result.at(-1), turnData: src, ...opts})
+                } else throw Error("No src provided!")
+            } else result.push({src, turnData, ...opts})
+        }
+    }
+    return result
+}()
+
+const awaitSync = promises => promises.reduce((pre, cur) => pre.then(cur), Promise.resolve())
+
+
+// parallelism check
+let actions = parts.map((value, index) => () => download(value))
+let n = parts.length === 1 || (bulk || bulk === 1) && (bulk >= parts.length || bulk === true ? true : Math.ceil(parts.length / bulk));
+(!n ? awaitSync(actions)
+    : Promise.all(
+        n === true ? actions.map(it => it()) :
+            function () {
+                // map into buckets, todo improve algorithm
+                let res = []
+                let i = 0;
+                while (i < n) {
+                    console.log(i)
+                    res.push(awaitSync(actions.slice(n * i, n * ++i)))
+                }
+                return res;
+            }()
+    )).then(() => $browser.then(b => b.close()))
+
+async function download(
+    {
+        src,
+        turnData,
+        show = false,
+        reverse = false,
+        speed = 1,
+        fadespeed = 1,
+        gif = true
+    }, useFirstPage = false) {
+    console.log(src, turnData, reverse, speed, fadespeed, gif)
     let {start, end, step1, step2} = function () {
         let match = turnSpec.exec(turnData);
         if (!match) return {};
@@ -70,13 +122,13 @@ async function download(src, turnData) {
     let browser = await $browser // stupid typing stuff
 
     /// get page to work with
-    const page = await (async () => {
-        if (!usedFirstPage) {
+    const page = await async function () {
+        if (useFirstPage) {
             let pages = await browser.pages();
             if (pages[0]) return pages[0];
         }
         return browser.newPage()
-    })();
+    }();
 
     const log = new Promise(resolve => {
         browser.newPage()
@@ -92,7 +144,8 @@ async function download(src, turnData) {
     await Promise.all([
         ['font-awesome', 'battle', 'replay', 'utilichart',]
             .map(url => page.addStyleTag({url: `https://play.pokemonshowdown.com/style/${url}.css?a7`})),
-        [
+        // force these to load in order
+        awaitSync([
             'js/lib/ps-polyfill.js',
             'config/config.js?a7',
             'js/lib/jquery-1.11.0.min.js',
@@ -109,9 +162,7 @@ async function download(src, turnData) {
             'data/teambuilder-tables.js?a7',
             'js/battle-tooltips.js?a7',
             'js/battle.js?a7'
-        ].map(url => () => page.addScriptTag({url: `https://play.pokemonshowdown.com/${url}`}))
-            // force all of them to load in order
-            .reduce((i, v) => i.then(v), Promise.resolve()),
+        ].map(url => () => page.addScriptTag({url: `https://play.pokemonshowdown.com/${url}`}))),
     ].flat())
     const Battle = await page.evaluateHandle("Battle")
     const wrapper = await page.evaluateHandle(() => {
@@ -173,7 +224,7 @@ async function download(src, turnData) {
     await battle.evaluate((b, speed) => {
         b.subscribe(window.sub)
         b.ignoreNicks = true
-        b.messageFadeTime = 300/speed;
+        b.messageFadeTime = 300 / speed;
         b.messageShownTime = 1;
         b.setMute(true); // we don't support sound right now
         // noinspection JSUnresolvedReference
