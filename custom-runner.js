@@ -106,11 +106,9 @@ async function download(
         fadespeed = 1,
         gif = true
     }, id) {
-    console.log([id, [src, turnData, show, reverse, speed, fadespeed, gif]])
     let {start, end, step1, step2} = function () {
         let match = turnSpec.exec(turnData);
         if (!match) return {};
-        console.log(match.groups)
         let {start, end, to} = match.groups;
         start = parseInt(start)
         return {
