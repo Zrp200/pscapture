@@ -241,9 +241,9 @@ async function download(
             {polling: "mutation"},
             await battleFrame
         );
+        console.log([id, 'record'])
         recorder.resume()
         state.emit('record')
-        console.log([id, 'record'])
     });
     await battle.evaluate(b => b.play())
     await battleEnd
