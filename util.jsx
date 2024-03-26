@@ -183,11 +183,12 @@ async function download(
         b.scene.updateAcceleration();
     }, fadespeed)
 
-    let innerbattle = page.waitForSelector('.innerbattle');
+    let battleFrame = page.waitForSelector('.battle');
+    let innerbattle = battleFrame.then(b => b.waitForSelector('.innerbattle'))
     const crop =
         show === 'chat' ?
-            await Promise.all(['.battle', '.battle-log']
-                .map(c => page.$(c).then(i => i.boundingBox())))
+            await Promise.all([battleFrame, page.$('.battle-log')]
+                .map(c => c.then(i => i.boundingBox())))
                 .then(([battle, log]) => ({
                     width: battle.width + log.width,
                     height: Math.max(battle.height, log.height),
@@ -212,6 +213,7 @@ async function download(
         await battle.evaluate((b, start) => b.seekTurn(start, true), start)
     }
     if (step1) {
+        console.log([id, `searching for "${step1}"`]);
         while (true) {
             let thisStep = await battle.evaluate(b => b.stepQueue[b.currentStep]);
             console.log([id, thisStep])
@@ -230,7 +232,12 @@ async function download(
         crop, speed,
     })
     recorder.pause()
-    state.once('playing', () => {
+    state.once('playing', async () => {
+        await page.waitForFunction(
+            b => !b.getElementsByClassName('seeking').length,
+            {polling: "mutation"},
+            await battleFrame
+        )
         recorder.resume()
         state.emit('record')
         console.log([id, 'record'])
