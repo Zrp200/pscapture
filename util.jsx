@@ -151,7 +151,11 @@ async function download(
                 if (end) return;
             }
         } while (!step.startsWith(step2))
-        do await newStep(); while (!endOfTurn() && step === ('|') || step.startsWith('|-')) // accompanying minor actions should be included
+        let divider = false;
+        do {
+            await newStep();
+            if (step === '|') divider = true;
+        } while (!endOfTurn() && step === '|' || !divider && step.startsWith('|-')) // accompanying minor actions should be included
     }
 
     const battleEnd = new Promise(resolve => {
