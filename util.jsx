@@ -20,6 +20,22 @@ const awaitSync = promises => promises.reduce((pre, cur) => pre.then(cur), Promi
 
 module.exports = {download, awaitSync, turnSpec}
 
+function generateName(src, turnData)
+{
+    let name = src.replace(PREFIX, '').replaceAll('?', '')
+    let e = name.indexOf('-')
+    // second occurrence
+    if (e !== -1) e = name.indexOf('-', e + 1)
+    if (e !== -1) name = name.substring(0, e)
+    if (turnData) {
+        name += '_' + String(turnData)
+            .replaceAll('-', '~')
+            .replaceAll('|', '$')
+            .replaceAll(RegExp('[$](?=~|$)', 'g'), '')
+    }
+    return name
+}
+
 async function download(
     {
         src,
@@ -31,7 +47,7 @@ async function download(
         gif = true,
         browser,
         shouldOpen = true,
-        id = 0,
+        id = generateName(src, turnData),
     }) {
     if (!browser) browser = launch()
 
@@ -193,18 +209,6 @@ async function download(
 
     // only keep the first part, this keeps private replays private
 
-    let name = src.replace(PREFIX, '').replaceAll('?', '')
-    let e = name.indexOf('-')
-    // second occurrence
-    if (e !== -1) e = name.indexOf('-', e + 1)
-    if (e !== -1) name = name.substring(0, e)
-    if (turnData) {
-        name += '_' + String(turnData)
-            .replaceAll('-', '~')
-            .replaceAll('|', '$')
-            .replaceAll(RegExp('[$](?=~|$)', 'g'), '')
-    }
-
     if (start) {
         await battle.evaluate((b, start) => b.seekTurn(start, true), start)
     }
@@ -221,7 +225,7 @@ async function download(
     }
 
     await mkdir[WEBM]; // just ensure that it's done
-    let file = path.resolve(WEBM, `${name}.webm`)
+    let file = path.resolve(WEBM, `${id}.webm`)
     let recorder = await page.screencast({
         path: file,
         crop, speed,
@@ -230,7 +234,7 @@ async function download(
     state.once('playing', () => {
         recorder.resume()
         state.emit('record')
-        console.log([id, 'recording - ' + name])
+        console.log([id, 'record'])
     });
     await battle.evaluate(b => b.play())
     await battleEnd
@@ -244,7 +248,7 @@ async function download(
         }),
         page.close()
     ])
-    console.log([id, 'complete - ' + name])
+    console.log([id, 'complete'])
 }
 
 async function fixwebm(file, shouldOpen) {
