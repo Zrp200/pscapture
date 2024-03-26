@@ -3,16 +3,16 @@ const yargs = require("yargs")
 
 const {download, turnSpec, awaitSync} = require("./util.jsx")
 
-
-const browser = launch({headless: false});
-
-let {argv: {_: argv, bulk}} = yargs(process.argv.slice(2))
+let {argv: {_: argv, bulk, headless=true}} = yargs(process.argv.slice(2))
     .parserConfiguration({"unknown-options-as-args": true})
     .option('bulk', {
         alias: 'b',
         describe: "How many instances to run at once, if giving more than one argument",
         default: true
     })
+    .boolean('headless')
+
+const browser = launch({headless});
 
 // split parts into sections
 const parts = function () {
