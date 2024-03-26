@@ -237,10 +237,10 @@ async function download(
     recorder.pause()
     state.once('playing', async () => {
         await page.waitForFunction(
-            b => !b.getElementsByClassName('seeking').length,
+            b => !b.getElementsByClassName('seeking').length && !b.getElementsByClassName('playbutton').length,
             {polling: "mutation"},
             await battleFrame
-        )
+        );
         recorder.resume()
         state.emit('record')
         console.log([id, 'record'])
