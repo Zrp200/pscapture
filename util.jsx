@@ -172,21 +172,24 @@ async function download(
         // turn has custom logic since 'turn' is super useless by itself
         if (state.emit(type, args) && type !== 'turn') console.log([id, type])
     })
+
+    const showChat = show === 'chat'
+
 // options
-    await battle.evaluate((b, speed) => {
+    await battle.evaluate((b, speed, showChat) => {
         b.subscribe(window.sub)
-        b.ignoreNicks = true
+        b.ignoreNicks = !showChat
         b.messageFadeTime = 300 / speed;
         b.messageShownTime = 1;
         b.setMute(true); // we don't support sound right now
         // noinspection JSUnresolvedReference
         b.scene.updateAcceleration();
-    }, fadespeed)
+    }, fadespeed, showChat)
 
     let battleFrame = page.waitForSelector('.battle');
     let innerbattle = battleFrame.then(b => b.waitForSelector('.innerbattle'))
     const crop =
-        show === 'chat' ?
+        showChat ?
             await Promise.all([battleFrame, page.$('.battle-log')]
                 .map(c => c.then(i => i.boundingBox())))
                 .then(([battle, log]) => ({
