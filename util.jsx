@@ -210,7 +210,7 @@ async function download(
     }
     if (step1) {
         while (true) {
-            let thisStep = await battle.evaluate(b => b.stepQueue[b.currentStep()]);
+            let thisStep = await battle.evaluate(b => b.stepQueue[b.currentStep]);
             console.log([id, thisStep])
             if (thisStep.startsWith(step1)) break
             await battle.evaluate(b => {
