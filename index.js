@@ -3,14 +3,42 @@ const yargs = require("yargs")
 
 const {download, turnSpec, awaitSync} = require("./util.jsx")
 
-let {argv: {_: argv, bulk, headless=true}} = yargs(process.argv.slice(2))
-    .parserConfiguration({"unknown-options-as-args": true})
+let {argv: {_: argv, bulk = true, headless = true, ...global_opts}} = replayArgs(process.argv.slice(2))
+    //.parserConfiguration({"unknown-options-as-args": true})
     .option('bulk', {
         alias: 'b',
         describe: "How many instances to run at once, if giving more than one argument",
-        default: true
     })
     .boolean('headless')
+
+// options configurable per replay. also configurable globally
+function replayArgs(argv) {
+    return yargs(argv)
+        .option("reverse", {
+            alias: 'r',
+            describe: 'reverse',
+            type: 'boolean',
+            //default: false,
+        })
+        .option('show', {choices: [false, 'teams', "chat"],})
+        .option("gif", {
+            describe: "generate a gif with this input",
+            type: 'boolean',
+            //default: true,
+        })
+        .option("speed",
+            {
+                describe: 'factor to speed up output',
+                //default: 1,
+                type: "number",
+            })
+        .option("fadespeed",
+            {
+                describe: 'how fast messages go away. Standard "fast" would be 6. Speeds up output slightly.',
+                //default: 1,
+                type: "number",
+            })
+}
 
 const browser = launch({headless});
 
@@ -24,44 +52,18 @@ const parts = function () {
             let slice = argv.slice(last, i)
             last = i + 1
             if (!slice) continue
-            const {argv: {_: [src, turnData], ...opts}} = yargs(slice)
-                .option("reverse", {
-                    alias: 'r',
-                    describe: 'reverse',
-                    type: 'boolean',
-                    //default: false,
-                })
-                .option('show', {choices: [false, 'teams', "chat"],})
-                .option("gif", {
-                    describe: "generate a gif with this input",
-                    type: 'boolean',
-                    //default: true,
-                })
-                .option("speed",
-                    {
-                        describe: 'factor to speed up output',
-                        //default: 1,
-                        type: "number",
-                    })
-                .option("fadespeed",
-                    {
-                        describe: 'how fast messages go away. Standard "fast" would be 6. Speeds up output slightly.',
-                        //default: 1,
-                        type: "number",
-                    })
+            const {argv: {_: [src, turnData], ...opts}} = replayArgs(slice);
             if (src && !turnData && turnSpec.test(src)) {
                 if (result) {
                     // use the previous one
                     // currently this will just redo the whole thing, but in the future...maybe
                     result.push({...result.at(-1), turnData: src, ...opts})
                 } else throw Error("No src provided!")
-            } else result.push({src, turnData, ...opts})
+            } else result.push({...global_opts, src, turnData, ...opts})
         }
     }
     return result
 }()
-
-
 
 
 // parallelism check
