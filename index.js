@@ -65,7 +65,7 @@ const parts = function () {
 
 
 // parallelism check
-let actions = parts.map((value,) => async () => download({browser: await browser, ...value}))
+let actions = parts.map((value,) => async () => download({browser, ...value}))
 let n = parts.length === 1 || (bulk || bulk === 1) && (bulk >= parts.length || bulk === true ? true : Math.ceil(parts.length / bulk));
 (!n ? awaitSync(actions)
     : Promise.all(

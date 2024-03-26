@@ -45,12 +45,10 @@ async function download(
         speed = 1,
         fadespeed = 1,
         gif = true,
-        browser,
+        browser = launch(),
         shouldOpen = true,
         id = generateName(src, turnData),
     }) {
-    if (!browser) browser = launch()
-
     if (!src.startsWith(PREFIX)) src = PREFIX + src;
     let {start, end, step1, step2} = function () {
         let match = turnSpec.exec(turnData);
@@ -65,10 +63,11 @@ async function download(
     }();
 
     /// get page to work with
-    const page = await browser.newPage();
+    const page = await (await browser).newPage()
 
     const log = new Promise(resolve => {
-        browser.newPage()
+        browser
+            .then(b => b.newPage())
             .then(page => page
                 .goto(`${src}.log`)
                 .then(it => it.text())
