@@ -29,9 +29,7 @@ function generateName(src, turnData)
     if (e !== -1) name = name.substring(0, e)
     if (turnData) {
         name += '_' + String(turnData)
-            .replaceAll('-', '~')
-            .replaceAll('|', '$')
-            .replaceAll(RegExp('[$](?=~|$)', 'g'), '')
+            .replaceAll(RegExp('\\|(-)?','g'), '')
     }
     return name
 }
