@@ -5,7 +5,7 @@ const path = require("path")
 const fs = require("fs")
 const open = require('opener')
 
-const turnSpec = RegExp('^(?<start>\\d+)(?<step1>\\|([^-]|-(?![\\d|]))*)?(?<to>-(?<end>\\d+)?(?<step2>\\|.+)?)?')
+const turnSpec = RegExp('^(?<start>\\d+)[|]?(?<step1>(?:-\\D)?[^-]+)?(?<to>-(?<end>\\d+)?[|]?(?<step2>.+)?)?')
 const PREFIX = 'https://replay.pokemonshowdown.com/';
 
 const folders = ["webm", "gifs"]
@@ -128,22 +128,22 @@ async function download(
     let state = new EventEmitter()
     async function seekEndStep() {
         // don't duplicate this logic
-        let prev, step = null
+        let prev = null, step = null
         const newStep = async () => {
             while (true) {
-                prev = step
                 step = await battle.evaluate(b => b.stepQueue[b.currentStep])
                 if (prev !== step) {
                     // todo clean up debug code. This is actually useful sometimes to get a bit more accuracy in follow-up uses of the program
                     console.log([id, step]);
-                    return step;
+                    prev = step
+                    return step = step ? step.substring(1) : null;
                 }
             }
         }
-        const endOfTurn = () => step.startsWith('|turn') && prev != null && prev !== step
+        const endOfTurn = () => step.startsWith('turn') && prev != null && prev !== step
         do {
             await newStep();
-            if (!step) return
+            if (typeof step != 'string') return
             if (endOfTurn()) {
                 console.log([id, `hit end of turn while looking for ${step2}`])
                 if (end) return;
@@ -152,8 +152,8 @@ async function download(
         let divider = false;
         do {
             await newStep();
-            if (step === '|') divider = true;
-        } while (!endOfTurn() && step === '|' || !divider && step.startsWith('|-')) // accompanying minor actions should be included
+            if (!step) divider = true;
+        } while (!endOfTurn() && !step || !divider && step.startsWith('-')) // accompanying minor actions should be included
     }
 
     const battleEnd = new Promise(resolve => {
@@ -222,7 +222,7 @@ async function download(
         while (true) {
             let thisStep = await battle.evaluate(b => b.stepQueue[b.currentStep]);
             console.log([id, thisStep])
-            if (thisStep.startsWith(step1)) break
+            if (thisStep.startsWith(step1,1)) break
             await battle.evaluate(b => {
                 b.play() // call next step
                 b.pause() // halt for processing
