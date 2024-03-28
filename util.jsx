@@ -29,7 +29,7 @@ function generateName(src, turnData)
     if (e !== -1) name = name.substring(0, e)
     if (turnData) {
         name += '_' + String(turnData)
-            .replaceAll(RegExp('\\|(-)?','g'), '')
+            .replaceAll(RegExp('\\|(-)?', 'g'), '')
     }
     return name
 }
@@ -223,7 +223,7 @@ async function download(
         while (true) {
             let thisStep = await battle.evaluate(b => b.stepQueue[b.currentStep]);
             console.log([id, thisStep])
-            if (thisStep.startsWith(step1,1)) break
+            if (thisStep.startsWith(step1, 1)) break
             await battle.evaluate(b => {
                 b.play() // call next step
                 b.pause() // halt for processing
