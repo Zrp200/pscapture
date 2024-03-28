@@ -28,15 +28,15 @@ function replayArgs(argv) {
         })
         .option("speed",
             {
-                describe: 'factor to speed up output',
+                describe: 'factor to speed up output. does not speed up generation',
                 //default: 1,
                 type: "number",
             })
-        .option("fadespeed",
+        .option('fast',
             {
-                describe: 'how fast messages go away. Standard "fast" would be 6. Speeds up output slightly.',
-                //default: 1,
-                type: "number",
+                describe: 'Speed up output by duration of messages and minor animations are active',
+                //default: false,
+                type: 'boolean',
             })
 }
 

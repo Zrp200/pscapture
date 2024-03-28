@@ -41,7 +41,7 @@ async function download(
         show = false,
         reverse = false,
         speed = 1,
-        fadespeed = 1,
+        fast = false,
         gif = true,
         browser = launch(),
         shouldOpen = true,
@@ -179,15 +179,15 @@ async function download(
     const showChat = show === 'chat'
 
 // options
-    await battle.evaluate((b, speed, showChat) => {
+    await battle.evaluate((b, fast, showChat) => {
         b.subscribe(window.sub)
         b.ignoreNicks = !showChat
-        b.messageFadeTime = 300 / speed;
+        b.messageFadeTime = fast ? 50 : 300;
         b.messageShownTime = 1;
         b.setMute(true); // we don't support sound right now
         // noinspection JSUnresolvedReference
         b.scene.updateAcceleration();
-    }, fadespeed, showChat)
+    }, fast, showChat)
 
     let battleFrame = page.waitForSelector('.battle');
     let innerbattle = battleFrame.then(b => b.waitForSelector('.innerbattle'))
