@@ -252,10 +252,10 @@ async function download(
     await battleEnd
     await recorder.stop()
     await Promise.all([
-        fixwebm(file, shouldOpen ? open : null).then(() => {
+        fixwebm(file, shouldOpen).then(() => {
             if (gif) {
                 console.log([id, 'gif']);
-                return makeGif(file, shouldOpen ? open : null);
+                return makeGif(file, shouldOpen);
             }
         }),
         page.close()
@@ -274,7 +274,7 @@ async function fixwebm(file, shouldOpen) {
             .on("end", () => {
                 fs.rmSync(file)
                 fs.renameSync(tmp, file)
-                if (open) open(file, resolve)
+                if (shouldOpen) open(file, resolve)
                 else resolve()
             })
             .on("error", (cause) => reject(new Error("Unable to fix metadata", {cause})))
@@ -324,7 +324,7 @@ async function makeGif(file, shouldOpen = true, verbose = false) {
         .finally(() => {
             // if(isMultiBar) _bar.remove(bar)
             fs.rmSync(palette)
-            if (open) return new Promise(resolve => open(gif, resolve))
+            if (shouldOpen) return new Promise(resolve => open(gif, resolve))
         })
         .catch(() => {
         }) // do nothing
