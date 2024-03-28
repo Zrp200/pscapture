@@ -127,6 +127,7 @@ async function download(
     }
     let state = new EventEmitter()
     async function seekEndStep() {
+        console.log([id, `searching for "${step2}"`]);
         // don't duplicate this logic
         let prev = null, step = null
         const newStep = async () => {
