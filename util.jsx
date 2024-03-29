@@ -57,7 +57,8 @@ const html = Array.of(
         'js/battle-tooltips.js?a7',
         'js/battle.js?a7'
     ].map(src => `<script src='https://play.pokemonshowdown.com/${src}'></script>`),
-    '</head>'
+    '</head>',
+    '<body><div class="wrapper replay-wrapper"><div class="battle"></div><div class="battle-log"></div></body>'
 ).join('')
 
 async function download(
@@ -103,29 +104,15 @@ async function download(
     })
     await pageLoad
     const Battle = await page.evaluateHandle("Battle")
-    const wrapper = await page.evaluateHandle(() => {
-        // set up
-        let el = $('.wrapper');
-        if (el.length) return el;
-        $('body').append(
-            '<div class="wrapper replay-wrapper">'
-            + '<div class="battle"></div>'
-            + '<div class="battle-log"></div>'
-            // + '<div class="replay-controls"></div>'
-            // + '<div class="replay-controls-2"></div>'
-        );
-        return $('.wrapper');
-    })
-
-    let battle = await Battle.evaluateHandle((Battle, text) => new Battle({
-        id: $('input[name=replayid]').val() || '',
+    let battle = await Battle.evaluateHandle((Battle, text, id) => new Battle({
+        id,
         $frame: $('.battle'),
         $logFrame: $('.battle-log'),
         log: (text || '').replace(/\\\//g, '/').split('\n'),
         isReplay: true,
         paused: true,
         autoresize: false,
-    }), await log)
+    }), await log, generateName(src, '') || '')
     if (reverse) {
         await battle.evaluate(b => b.switchViewpoint())
     }
