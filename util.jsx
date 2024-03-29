@@ -34,6 +34,32 @@ function generateName(src, turnData)
     return name
 }
 
+const html = Array.of(
+    '<head><title="Replay">',
+    // styles
+    ...['font-awesome', 'battle', 'replay', 'utilichart',]
+        .map(url => `<link rel='stylesheet' href='https://play.pokemonshowdown.com/style/${url}.css?a7'>`),
+    // scripts
+    ...['js/lib/ps-polyfill.js',
+        'config/config.js?a7',
+        'js/lib/jquery-1.11.0.min.js',
+        'js/lib/html-sanitizer-minified.js',
+        'js/battle-sound.js',
+        'js/battledata.js?a7',
+        'data/pokedex-mini.js?a7',
+        'data/pokedex-mini-bw.js?a7',
+        'data/graphics.js?a7',
+        'data/pokedex.js?a7',
+        'data/moves.js?a7',
+        'data/abilities.js?a7',
+        'data/items.js?a7',
+        'data/teambuilder-tables.js?a7',
+        'js/battle-tooltips.js?a7',
+        'js/battle.js?a7'
+    ].map(src => `<script src='https://play.pokemonshowdown.com/${src}'></script>`),
+    '</head>'
+).join('')
+
 async function download(
     {
         src,
@@ -62,7 +88,7 @@ async function download(
 
     /// get page to work with
     const page = await (await browser).newPage()
-
+    let pageLoad = page.setContent(html, {waitUntil: "load"})
     const log = new Promise(resolve => {
         browser
             .then(b => b.newPage())
@@ -75,29 +101,7 @@ async function download(
                 })
             )
     })
-    await Promise.all([
-        ['font-awesome', 'battle', 'replay', 'utilichart',]
-            .map(url => page.addStyleTag({url: `https://play.pokemonshowdown.com/style/${url}.css?a7`})),
-        // force these to load in order
-        awaitSync([
-            'js/lib/ps-polyfill.js',
-            'config/config.js?a7',
-            'js/lib/jquery-1.11.0.min.js',
-            'js/lib/html-sanitizer-minified.js',
-            'js/battle-sound.js',
-            'js/battledata.js?a7',
-            'data/pokedex-mini.js?a7',
-            'data/pokedex-mini-bw.js?a7',
-            'data/graphics.js?a7',
-            'data/pokedex.js?a7',
-            'data/moves.js?a7',
-            'data/abilities.js?a7',
-            'data/items.js?a7',
-            'data/teambuilder-tables.js?a7',
-            'js/battle-tooltips.js?a7',
-            'js/battle.js?a7'
-        ].map(url => () => page.addScriptTag({url: `https://play.pokemonshowdown.com/${url}`}))),
-    ].flat())
+    await pageLoad
     const Battle = await page.evaluateHandle("Battle")
     const wrapper = await page.evaluateHandle(() => {
         // set up
