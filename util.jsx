@@ -12,7 +12,7 @@ const folders = ["webm", "gifs"]
 const [WEBM, GIF] = folders
 let mkdir = function () {
     let res = {}
-    for (let folder in folders) res[folder] = new Promise(resolve => fs.mkdir(folder, resolve))
+    for (let folder of folders) res[folder] = new Promise(resolve => fs.mkdir(folder, resolve))
     return res
 }()
 
