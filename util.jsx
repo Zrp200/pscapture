@@ -20,59 +20,18 @@ const awaitSync = promises => promises.reduce((pre, cur) => pre.then(cur), Promi
 
 module.exports = {download, awaitSync, turnSpec}
 
-function generateName(src, turnData)
-{
-    let name = src.replace(PREFIX, '').replaceAll('?', '')
-    let e = name.indexOf('-')
-    // second occurrence
-    if (e !== -1) e = name.indexOf('-', e + 1)
-    if (e !== -1) name = name.substring(0, e)
-    if (turnData) {
-        name += '_' + String(turnData)
-            .replaceAll(RegExp('\\|(-)?', 'g'), '')
-    }
-    return name
-}
-
-const html = Array.of(
-    '<head><title="Replay">',
-    // styles
-    ...['font-awesome', 'battle', 'replay', 'utilichart',]
-        .map(url => `<link rel='stylesheet' href='https://play.pokemonshowdown.com/style/${url}.css?a7'>`),
-    // scripts
-    ...['js/lib/ps-polyfill.js',
-        'config/config.js?a7',
-        'js/lib/jquery-1.11.0.min.js',
-        'js/lib/html-sanitizer-minified.js',
-        'js/battle-sound.js',
-        'js/battledata.js?a7',
-        'data/pokedex-mini.js?a7',
-        'data/pokedex-mini-bw.js?a7',
-        'data/graphics.js?a7',
-        'data/pokedex.js?a7',
-        'data/moves.js?a7',
-        'data/abilities.js?a7',
-        'data/items.js?a7',
-        'data/teambuilder-tables.js?a7',
-        'js/battle-tooltips.js?a7',
-        'js/battle.js?a7'
-    ].map(src => `<script src='https://play.pokemonshowdown.com/${src}'></script>`),
-    '</head>',
-    '<body><div class="wrapper replay-wrapper"><div class="battle"></div><div class="battle-log"></div></body>'
-).join('')
-
 async function download(
     {
         src,
         turnData,
         show = false,
         reverse = false,
-        speed = 1,
-        fast = false,
+        vspeed = 1,
+        speed,
         gif = true,
         browser = launch(),
         shouldOpen = true,
-        id = generateName(src, turnData),
+        id,
     }) {
     if (!src.startsWith(PREFIX)) src = PREFIX + src;
     let {start, end, step1, step2} = function () {
@@ -89,32 +48,24 @@ async function download(
 
     /// get page to work with
     const page = await (await browser).newPage()
-    let pageLoad = page.setContent(html, {waitUntil: "load"})
-    const log = new Promise(resolve => {
-        browser
-            .then(b => b.newPage())
-            .then(page => page
-                .goto(`${src}.log`)
-                .then(it => it.text())
-                .then(text => {
-                    page.close() // I don't care when it closes.
-                    resolve(text)
-                })
-            )
-    })
-    await pageLoad
-    const Battle = await page.evaluateHandle("Battle")
-    let battle = await Battle.evaluateHandle((Battle, text, id) => new Battle({
-        id,
-        $frame: $('.battle'),
-        $logFrame: $('.battle-log'),
-        log: (text || '').replace(/\\\//g, '/').split('\n'),
-        isReplay: true,
-        paused: true,
-        autoresize: false,
-    }), await log, generateName(src, '') || '')
+    const {log, id: battleID} = await page.goto(`${src}.json`).then(i => i.json())
+    await page.setContent(`<input name="replayid" value="${battleID}" hidden="hidden"><script class="battle-log-data" type="text/plain">${log}</script><script src="https://play.pokemonshowdown.com/js/replay-embed.js"></script>`);
+    let battle = await page.evaluateHandle(() => Replays.battle)
     if (reverse) {
         await battle.evaluate(b => b.switchViewpoint())
+    }
+    if (!id)  {
+        let name = ''
+        if (start) name += start
+        if (step1) name += step1
+        if (step2 || end && end !== start + 1) {
+            name += '-'
+            if (end && step2 || end !== start + 1) name += end
+            if (step2) name += step2;
+        }
+        if (reverse) name += '_p2'
+        if (speed) name += '_' + speed
+        id = name ? `${battleID}_${name}` : battleID;
     }
     let state = new EventEmitter()
     async function seekEndStep() {
@@ -170,15 +121,14 @@ async function download(
     const showChat = show === 'chat'
 
 // options
-    await battle.evaluate((b, fast, showChat) => {
+    await battle.evaluate((b, showChat, speed) => {
         b.subscribe(window.sub)
         b.ignoreNicks = !showChat
-        b.messageFadeTime = fast ? 50 : 300;
-        b.messageShownTime = 1;
         b.setMute(true); // we don't support sound right now
-        // noinspection JSUnresolvedReference
-        b.scene.updateAcceleration();
-    }, fast, showChat)
+        if(speed) Replays.changeSetting('speed', speed);
+    }, showChat, speed)
+
+
 
     let battleFrame = page.waitForSelector('.battle');
     let innerbattle = battleFrame.then(b => b.waitForSelector('.innerbattle'))
@@ -226,7 +176,7 @@ async function download(
     let file = path.resolve(WEBM, `${id}.webm`)
     let recorder = await page.screencast({
         path: file,
-        crop, speed,
+        crop, speed: vspeed,
     })
     recorder.pause()
     state.once('playing', async () => {

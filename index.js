@@ -28,15 +28,14 @@ function replayArgs(argv) {
         })
         .option("speed",
             {
-                describe: 'factor to speed up output. does not speed up generation',
-                //default: 1,
-                type: "number",
+                describe: 'gamespeed',
+                choices: ['very slow', 'slow', 'normal', 'fast', 'hyperfast']
             })
-        .option('fast',
+        .option('vspeed',
             {
-                describe: 'Speed up output by duration of messages and minor animations are active',
-                //default: false,
-                type: 'boolean',
+                describe: 'output video speed',
+                //default: 1,
+                type: 'number',
             })
 }
 
