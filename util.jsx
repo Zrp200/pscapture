@@ -5,7 +5,7 @@ const path = require("path")
 const fs = require("fs")
 const open = require('opener')
 
-const turnSpec = RegExp('^(?<start>\\d+)[|]?(?<step1>(?:(?=\\|)-\\D)?[^-]+)?(?<to>-(?<end>\\d+)?[|]?(?<step2>.+)?)?')
+const turnSpec = RegExp('^(?<start>\\d+|start)[|]?(?<step1>(?:(?=\\|)-\\D)?[^-]+)?(?<to>-(?<end>\\d+)?[|]?(?<step2>.+)?)?')
 const PREFIX = 'https://replay.pokemonshowdown.com/';
 
 const folders = ["webm", "gifs"]
@@ -33,7 +33,7 @@ async function download(
         shouldOpen = true,
         id,
     }) {
-    if (!src.startsWith(PREFIX)) src = PREFIX + src;
+    if (!src.startsWith(PREFIX)) src = PREFIX + src
     let {start, end, step1, step2} = function () {
         let match = turnSpec.exec(turnData);
         if (!match) return {};
@@ -243,6 +243,7 @@ async function makeGif(file, shouldOpen = true, verbose = false) {
             .addInput(palette)
             .addInputOption('-y')
             .addInputOption("-filter_complex paletteuse")
+            .outputFPS(15)
             .save(gif)
         )
     )
