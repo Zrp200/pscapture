@@ -54,7 +54,7 @@ async function download(
     if (reverse) {
         await battle.evaluate(b => b.switchViewpoint())
     }
-    if (!id)  {
+    if (!id) {
         let name = ''
         if (start) name += start
         if (step1) name += step1
@@ -68,6 +68,7 @@ async function download(
         id = name ? `${battleID}_${name}` : battleID;
     }
     let state = new EventEmitter()
+
     async function seekEndStep() {
         console.log([id, `searching for "${step2}"`]);
         // don't duplicate this logic
@@ -125,9 +126,8 @@ async function download(
         b.subscribe(window.sub)
         b.ignoreNicks = !showChat
         b.setMute(true); // we don't support sound right now
-        if(speed) Replays.changeSetting('speed', speed);
+        if (speed) Replays.changeSetting('speed', speed);
     }, showChat, speed)
-
 
 
     let battleFrame = page.waitForSelector('.battle');
@@ -153,8 +153,6 @@ async function download(
                     box.width -= l.width + r.width
                     return box
                 })
-
-    // only keep the first part, this keeps private replays private
 
     if (start) {
         await battle.evaluate((b, start) => b.seekTurn(start, true), start)
@@ -225,45 +223,31 @@ async function fixwebm(file, shouldOpen) {
 }
 
 async function makeGif(file, shouldOpen = true, verbose = false) {
-    // const bar = isMultiBar ? _bar.create() : _bar
     await mkdir[GIF]
     const filename = path.basename(file, path.extname(file))
     const gif = path.join(GIF, filename + '.gif')
     const palette = file + '.png'
-    const withBar = (resolve, reject, s) => s
+    const template = (resolve, reject, s) => s
         .on('start', (cmd) => {
             if (verbose) console.log(cmd)
-            // bar.start(100, 0)
         })
-        .on('progress', ({percent}) => {
-            // bar.update(percent)
-            // bar.render()
-        })
-        .on('end', () => {
-            // bar.update(100)
-            // bar.render()
-            // bar.stop()
-            resolve()
-        })
+        .on('end', resolve)
         .on('error', reject)
 
     return new Promise((resolve, reject) =>
-        withBar(resolve, reject, ffmpeg(file))
+        template(resolve, reject, ffmpeg(file))
             .videoFilter('palettegen')
             .save(palette)
-    ).then(() => new Promise((resolve, reject) => withBar(resolve, reject, ffmpeg())
+    ).then(() => new Promise((resolve, reject) => template(resolve, reject, ffmpeg())
             .addInput(file)
             .addInput(palette)
             .addInputOption('-y')
             .addInputOption("-filter_complex paletteuse")
-            //.addInputOption("-r 10")
-            //.outputFPS(15) // todo automatically determine fps by duration
             .save(gif)
         )
     )
         .catch(console.error)
         .finally(() => {
-            // if(isMultiBar) _bar.remove(bar)
             fs.rmSync(palette)
             if (shouldOpen) return new Promise(resolve => open(gif, resolve))
         })
