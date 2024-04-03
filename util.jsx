@@ -67,6 +67,18 @@ async function download(
         if (speed) name += '_' + speed
         id = name ? `${battleID}_${name}` : battleID;
     }
+
+    let playToEnd
+    if (step2 === 'end') {
+        step2 = ''
+        if (end) {
+            console.log([id, `warning: "end" option given but end=${end}`])
+        }
+        playToEnd = true
+    } else {
+        playToEnd = false
+    }
+
     let state = new EventEmitter()
 
     async function seekEndStep() {
@@ -109,9 +121,8 @@ async function download(
             resolve();
         })
         else if (step2) state.on('record', () => resolve(seekEndStep()))
-        state
-            .on('ended', resolve)
-            .on('atqueueend', resolve)
+        if (!playToEnd) state.on('ended', resolve)
+        state.on('atqueueend', resolve)
     })
 
     await page.exposeFunction('sub', (type, ...args) => {
