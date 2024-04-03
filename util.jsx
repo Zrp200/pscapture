@@ -32,6 +32,7 @@ async function download(
         browser = launch(),
         shouldOpen = true,
         id,
+        turns = true, // show turn indicator
     }) {
     if (!src.startsWith(PREFIX)) src = PREFIX + src
     let {start, end, step1, step2} = function () {
@@ -50,6 +51,7 @@ async function download(
     const page = await (await browser).newPage()
     const {log, id: battleID} = await page.goto(`${src}.json`).then(i => i.json())
     await page.setContent(`<input name="replayid" value="${battleID}" hidden="hidden"><script class="battle-log-data" type="text/plain">${log}</script><script src="https://play.pokemonshowdown.com/js/replay-embed.js"></script>`);
+    if (!turns) await page.addStyleTag({content: ".turn { display: none }"})
     let battle = await page.evaluateHandle(() => Replays.battle)
     if (reverse) {
         await battle.evaluate(b => b.switchViewpoint())

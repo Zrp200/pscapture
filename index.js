@@ -37,6 +37,11 @@ function replayArgs(argv) {
                 //default: 1,
                 type: 'number',
             })
+        .option('turns', {
+            desc: 'Show the turn indicator, default true',
+            type: "boolean"
+            // default true
+        })
 }
 
 const browser = launch({headless});
