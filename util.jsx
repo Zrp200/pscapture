@@ -62,7 +62,7 @@ async function download(
         if (step1) name += step1
         if (step2 || end && end !== start + 1) {
             name += '-'
-            if (end && step2 || end !== start + 1) name += end
+            if (end && (step2 || end !== start + 1)) name += end
             if (step2) name += step2;
         }
         if (reverse) name += '_p2'
