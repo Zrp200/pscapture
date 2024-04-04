@@ -5,10 +5,8 @@
   "main": "index.js",
   "dependencies": {
     "fluent-ffmpeg": "^2.1.2",
-    "open": "^10.1.0",
     "opener": "^1.5.2",
     "puppeteer": "*",
-    "puppeteer-screen-recorder": "^3.0.3",
     "yargs": "^17.7.2"
   },
   "scripts": {
