@@ -64,6 +64,7 @@ async function download(
             if (step2) name += step2;
         }
         if (reverse) name += '_p2'
+        if (show) name += `_show-${show}`
         if (speed) name += '_' + speed
         id = name ? `${battleID}_${name}` : battleID;
     }
