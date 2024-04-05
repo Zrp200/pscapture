@@ -40,7 +40,7 @@ async function download(
         return {
             ...turnData,
             start,
-            end: parseInt(end || (to ? 0 : start + 1)),
+            end: parseInt(end || (to ? 0 : start)),
         }
     }();
 
@@ -56,9 +56,9 @@ async function download(
         let name = ''
         if (start) name += start
         if (step1) name += step1
-        if (step2 || end && end !== start + 1) {
+        if (step2 || end && end !== start) {
             name += '-'
-            if (end && (step2 || end !== start + 1)) name += end
+            if (end && (step2 || end !== start)) name += end
             if (step2) name += step2;
         }
         if (reverse) name += '_p2'
@@ -112,13 +112,16 @@ async function download(
     }
 
     const battleEnd = new Promise(resolve => {
-        if (end) state.on('turn', async () => {
-            const turn = await page.evaluate(b => b.turn, battle);
-            console.log([id, 'turn ' + turn])
-            if (turn < end) return;
-            if (turn === end && step2) await seekEndStep()
-            resolve();
-        })
+        if (end) {
+            state.on('turn', async () => {
+                const turn = await page.evaluate(b => b.turn, battle);
+                console.log([id, 'turn ' + turn])
+                if (turn < end) return; // this works because the turn event is not emitted on the first turn active
+                if (turn === end && step2) await seekEndStep()
+                resolve();
+            })
+            if (step2 && end === start) state.once('record', () => state.emit('turn')) // emit for first turn if the end is expected for that turn
+        }
         else if (step2) state.on('record', () => resolve(seekEndStep()))
         if (!playToEnd) state.on('ended', resolve)
         state.on('atqueueend', () => setTimeout(resolve, playToEnd && 100))
