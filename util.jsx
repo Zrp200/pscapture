@@ -36,12 +36,10 @@ async function download(
     }) {
     if (!src.startsWith(PREFIX)) src = PREFIX + src
     let {start, end, step1, step2} = function () {
-        let match = turnSpec.exec(turnData);
-        if (!match) return {};
-        let {start, end, to} = match.groups;
+        let {start, end, to} = turnData;
         start = parseInt(start)
         return {
-            ...match.groups,
+            ...turnData,
             start,
             end: parseInt(end || (to ? 0 : start + 1)),
         }
