@@ -40,7 +40,11 @@ const save = {
         desc: 'Show the turn indicator, default true',
         type: "boolean",
         group: 'save',
-    }
+    },
+    shouldOpen: {
+        boolean: true,
+        alias: 'open'
+    },
 }
 
 yargs()
