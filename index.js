@@ -44,6 +44,16 @@ const save = {
 }
 
 yargs()
+    .usage("$0 [<src> [[turns] [save_opts]]..")
+
+    .positional('src', {
+        desc: 'Link to the replay. The "https://play.pokemonshowdown" is optional.'
+    })
+    .positional('turns', {
+        desc: 'turn range to capture. a descriptor can be used in addition or instead of a start or end range. Omitting or using "all" captures the whole thing.'
+    })
+    .example("$0 oumonotype-82345404 1-2faint 0-end")
+
     .options(global)
     .options(save)
     .default({
