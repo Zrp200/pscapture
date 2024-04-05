@@ -7,34 +7,32 @@ const global = {
     bulk: {
         alias: 'b',
         describe: "How many instances to run at once, if giving more than one argument",
+        default: true,
     },
-    headless: { boolean: true }
+    headless: { boolean: true, default: true }
 };
 
 // options configurable per replay. also configurable globally
 const save = {
     'reverse': {
         alias: 'r',
-        describe: 'reverse',
+        describe: 'reverse viewpoint of battle',
         type: 'boolean',
         group: 'save',
-        //default: false,
     },
     'show': {choices: [false, 'teams', "chat"], group: 'save'},
     'gif': {
         describe: "generate a gif with this input",
         type: 'boolean',
         group: 'save',
-        //default: true,
     },
     'speed': {
-        describe: 'gamespeed',
+        describe: 'adjust time between messages. affects output speed. hyperfast disables animations',
         choices: ['very slow', 'slow', 'normal', 'fast', 'hyperfast'],
         group: 'save'
     },
     'vspeed': {
         describe: 'output video speed',
-        //default: 1,
         type: 'number',
         group: 'save',
     },
@@ -42,13 +40,20 @@ const save = {
         desc: 'Show the turn indicator, default true',
         type: "boolean",
         group: 'save',
-        // default true
     }
 }
 
 yargs()
     .options(global)
     .options(save)
+    .default({
+        'reverse': false,
+        'show': false,
+        'gif': true,
+        'speed': 'normal',
+        'vspeed': 1,
+        'turns': true
+    })
     .strictOptions() // verify all options are legitimate
     .parse(process.argv)
 
