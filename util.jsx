@@ -122,10 +122,7 @@ async function download(
         })
         else if (step2) state.on('record', () => resolve(seekEndStep()))
         if (!playToEnd) state.on('ended', resolve)
-        state.on('atqueueend', () => {
-            // wait for animations to finish
-            resolve(battle.evaluate(b => b.scene.activeAnimations.promise()))
-        })
+        state.on('atqueueend', () => setTimeout(resolve, playToEnd && 100))
     })
 
     await page.exposeFunction('sub', (type, ...args) => {
