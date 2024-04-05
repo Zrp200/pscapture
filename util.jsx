@@ -191,11 +191,8 @@ async function download(
     })
     recorder.pause()
     state.once('playing', async () => {
-        await page.waitForFunction(
-            b => !b.getElementsByClassName('seeking').length && !b.getElementsByClassName('playbutton').length,
-            {polling: "mutation"},
-            await battleFrame
-        );
+        // noinspection JSUnresolvedReference
+        await page.waitForFunction(() => !$('playbutton').length && !$('seeking').length, {polling: "mutation"});
         console.log([id, 'record'])
         recorder.resume()
         state.emit('record')
