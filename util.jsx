@@ -28,6 +28,7 @@ async function download(
         reverse = false,
         vspeed = 1,
         speed,
+        gen, hardcore,
         gif = true,
         shouldOpen = true,
         id,
@@ -135,12 +136,21 @@ async function download(
     const showChat = show === 'chat'
 
 // options
-    await battle.evaluate((b, showChat, speed) => {
+    await battle.evaluate((b, showChat, speed, gen) => {
         b.subscribe(window.sub)
         b.ignoreNicks = !showChat
+        // noinspection JSUnresolvedReference
         b.setMute(true); // we don't support sound right now
         if (speed) Replays.changeSetting('speed', speed);
-    }, showChat, speed)
+        if (hardcore) { // noinspection JSUnresolvedReference
+            b.setHardcoreMode(true)
+        }
+        if (gen) {
+            b.gen = gen
+            // noinspection JSUnresolvedReference
+            b.scene.updateGen()
+        }
+    }, showChat, speed, gen, hardcore)
 
 
     let battleFrame = page.waitForSelector('.battle');

@@ -41,6 +41,14 @@ const save = {
         type: "boolean",
         group: 'save',
     },
+    'gen': {
+        desc: 'Override the sprite generation',
+        type: 'number',
+        nargs: 1
+    },
+    'hardcore': {
+        desc: 'hide extra information not present in game'
+    },
     shouldOpen: {
         boolean: true,
         alias: 'open'
