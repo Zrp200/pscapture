@@ -61,7 +61,7 @@ let {argv: {_: argv, bulk = true, headless = true}} = yargs(process.argv.slice(2
     .parserConfiguration({"unknown-options-as-args": true})
     .options(global)
 
-const browser = launch({headless});
+const browser = launch({headless, waitForInitialPage: false, args: ["--no-startup-window"]});
 // split parts into sections
 const parts = function* () {
     let parser = yargs().options(save)
@@ -88,7 +88,11 @@ const parts = function* () {
 }();
 
 // parallelism check
-let actions = [...parts].map((value,) => async () => download({browser, ...value}))
+let actions = [...parts].map((value,id,) => () => browser
+    .then(browser => browser.createBrowserContext())
+    .then(context => context.newPage())
+    .then(page => download(page, value))
+)
 let n = parts.length === 1 || (bulk || bulk === 1) && (bulk >= parts.length || bulk === true ? true : Math.ceil(parts.length / bulk));
 (!n ? awaitSync(actions)
     : Promise.all(

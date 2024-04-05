@@ -1,4 +1,4 @@
-const {launch, EventEmitter} = require("puppeteer");
+const {EventEmitter} = require("puppeteer");
 const ffmpeg = require("fluent-ffmpeg")
 
 const path = require("path")
@@ -21,7 +21,7 @@ const awaitSync = promises => promises.reduce((pre, cur) => pre.then(cur), Promi
 module.exports = {download, awaitSync, turnSpec}
 
 async function download(
-    {
+    page, {
         src,
         turnData,
         show = false,
@@ -29,7 +29,6 @@ async function download(
         vspeed = 1,
         speed,
         gif = true,
-        browser = launch(),
         shouldOpen = true,
         id,
         turns = true, // show turn indicator
@@ -46,7 +45,6 @@ async function download(
     }();
 
     /// get page to work with
-    const page = await (await browser).newPage()
     const {log, id: battleID} = await page.goto(`${src}.json`).then(i => i.json())
     await page.setContent(`<input name="replayid" value="${battleID}" hidden="hidden"><script class="battle-log-data" type="text/plain">${log}</script><script src="https://play.pokemonshowdown.com/js/replay-embed.js"></script>`);
     if (!turns) await page.addStyleTag({content: ".turn { display: none }"})
