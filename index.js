@@ -13,55 +13,38 @@ const global = {
 };
 
 // options configurable per replay. also configurable globally
-const save = {
-    'reverse': {
+const save = [
+    ['reverse', {
         alias: 'r',
         describe: 'reverse viewpoint of battle',
         type: 'boolean',
-        group: 'save',
-    },
-    'show': {choices: [false, 'teams', "chat"], group: 'save'},
-    'gif': {
-        describe: "generate a gif with this input",
-        type: 'boolean',
-        group: 'save',
-    },
-    'speed': {
+    }],
+    ['show', {
+        describe: 'Show players, or show players and chat. "chat" also shows nicknames.',
+        choices: [false, 'teams', "chat"],
+    }],
+    ['speed', {
         describe: 'adjust time between messages. affects output speed. hyperfast disables animations',
         choices: ['very slow', 'slow', 'normal', 'fast', 'hyperfast'],
-        group: 'save'
-    },
-    'vspeed': {
+    }],
+    ['vspeed', {
         describe: 'output video speed',
         type: 'number',
-        group: 'save',
-    },
-    'turns': {
-        desc: 'Show the turn indicator, default true',
-        type: "boolean",
-        group: 'save',
-    },
-    'gen': {
-        desc: 'Override the sprite generation',
-        type: 'number',
-        nargs: 1
-    },
-    'hardcore': {
-        desc: 'hide extra information not present in game'
-    },
-    shouldOpen: {
-        boolean: true,
-        alias: 'open'
-    },
-}
+    }],
+    ['turns', {desc: 'Show the turn indicator', type: "boolean"}],
+    ['gen', {desc: 'Override the sprite generation', type: 'number'}],
+    ['hardcore', {desc: 'hide extra information not present in game'}],
+    ['gif', {describe: "generate a gif with this input, otherwise just creates a webm", type: 'boolean'}],
+    ['shouldOpen', {desc: 'immediately open result', boolean: true, alias: 'open'}],
+].reduce((prev, [key, value],) => ({...prev, [key]: {...value, group: 'Replay Options'}}), {})
 
 yargs()
-    .usage("$0 [<src> [[turns] [save_opts]]..")
+    .usage("$0 [<src> [[range] [replay_opts]]...")
 
     .positional('src', {
         desc: 'Link to the replay. The "https://play.pokemonshowdown" is optional.'
     })
-    .positional('turns', {
+    .positional('range', {
         desc: 'turn range to capture. a descriptor can be used in addition or instead of a start or end range. Omitting or using "all" captures the whole thing.'
     })
     .example("$0 oumonotype-82345404 1-2faint 0-end")
@@ -69,7 +52,6 @@ yargs()
     .options(global)
     .options(save)
     .default({
-        'reverse': false,
         'show': false,
         'gif': true,
         'speed': 'normal',
