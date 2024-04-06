@@ -4,8 +4,10 @@ A Node.js application to make gifs out of notable moments in a battle
 
 Inspired by [Intenzi/ShowdownReplayDownloader](https://github.com/Intenzi/ShowdownReplayDownloader)
 
+Currently, it will make two directories in the working directory for outputs. This will probably be configurable in the future.
+
 ## Usage:
-```bash index.js [<src> [[range] [replay_opts]]..```
+```index.js [<src> [[range] [replay_opts]]..```
 
 ### Positionals:
 #### src 
