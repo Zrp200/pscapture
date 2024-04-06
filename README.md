@@ -7,7 +7,7 @@ Inspired by [Intenzi/ShowdownReplayDownloader](https://github.com/Intenzi/Showdo
 Currently, it will make two directories in the working directory for outputs. This will probably be configurable in the future.
 
 ## Usage:
-```index.js [<src> [[range] [replay_opts]]..```
+```replaytogif [<src> [[range] [replay_opts]]..```
 
 ### Positionals:
 #### src 
