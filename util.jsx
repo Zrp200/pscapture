@@ -136,7 +136,7 @@ async function download(
     const showChat = show === 'chat'
 
 // options
-    await battle.evaluate((b, showChat, speed, gen) => {
+    await battle.evaluate((b, showChat, speed, gen, hardcore) => {
         b.subscribe(window.sub)
         b.ignoreNicks = !showChat
         // noinspection JSUnresolvedReference
