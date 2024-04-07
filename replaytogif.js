@@ -51,6 +51,7 @@ yargs()
 
     .options(global)
     .options(save)
+    .demandCommand(1)
     .default({
         'show': false,
         'gif': true,
@@ -59,7 +60,7 @@ yargs()
         'turns': true
     })
     .strictOptions() // verify all options are legitimate
-    .parse(process.argv)
+    .parse(process.argv.slice(2))
 
 let {argv: {_: argv, bulk = true, headless = true}} = yargs(process.argv.slice(2))
     .parserConfiguration({"unknown-options-as-args": true})
