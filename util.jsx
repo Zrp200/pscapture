@@ -46,7 +46,9 @@ async function download(
     }();
 
     /// get page to work with
-    const {log, id: battleID} = await page.goto(`${src}.json`).then(i => i.json())
+    let {log, id: battleID} = await page.goto(`${src}.json`).then(i => i.json())
+    // modify log as needed
+    if (gen) log = log.replace(RegExp("(?<=\\|gen\\|)\\d+"), gen)
     await page.setContent(`<input name="replayid" value="${battleID}" hidden="hidden"><script class="battle-log-data" type="text/plain">${log}</script><script src="https://play.pokemonshowdown.com/js/replay-embed.js"></script>`);
     if (!turns) await page.addStyleTag({content: ".turn { display: none }"})
     let battle = await page.evaluateHandle(() => Replays.battle)
@@ -136,7 +138,7 @@ async function download(
     const showChat = show === 'chat'
 
 // options
-    await battle.evaluate((b, showChat, speed, gen, hardcore) => {
+    await battle.evaluate((b, showChat, speed, hardcore) => {
         b.subscribe(window.sub)
         b.ignoreNicks = !showChat
         // noinspection JSUnresolvedReference
@@ -145,12 +147,7 @@ async function download(
         if (hardcore) { // noinspection JSUnresolvedReference
             b.setHardcoreMode(true)
         }
-        if (gen) {
-            b.gen = gen
-            // noinspection JSUnresolvedReference
-            b.scene.updateGen()
-        }
-    }, showChat, speed, gen, hardcore)
+    }, showChat, speed, hardcore)
 
 
     let battleFrame = page.waitForSelector('.battle');
