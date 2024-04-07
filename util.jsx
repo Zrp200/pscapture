@@ -215,7 +215,7 @@ async function download(
     await battleEnd
     await recorder.stop()
     await Promise.all([
-        fixwebm(file, shouldOpen).then(() => {
+        fixwebm(file, shouldOpen && !gif).then(() => {
             if (gif) {
                 console.log([id, 'gif']);
                 return makeGif(file, shouldOpen);
