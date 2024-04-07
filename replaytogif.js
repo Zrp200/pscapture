@@ -15,9 +15,14 @@ const global = {
 // options configurable per replay. also configurable globally
 const save = [
     ['reverse', {
-        alias: 'r',
+        alias: ['r', 'p2'],
         describe: 'reverse viewpoint of battle',
         type: 'boolean',
+    }],
+    ['player', {
+        alias: ['side'],
+        describe: 'viewpoint to use for battle',
+        conflicts: 'reverse'
     }],
     ['show', {
         describe: 'Show players, or show players and chat. "chat" also shows nicknames.',

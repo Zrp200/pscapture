@@ -25,7 +25,7 @@ async function download(
         src,
         turnData,
         show = false,
-        reverse = false,
+        reverse = false, player,
         vspeed = 1,
         speed,
         gen, hardcore,
@@ -46,7 +46,14 @@ async function download(
     }();
 
     /// get page to work with
-    let {log, id: battleID} = await page.goto(`${src}.json`).then(i => i.json())
+    let {log, id: battleID, players} = await page.goto(`${src}.json`).then(i => i.json())
+    if (player) {
+        // todo add better verification for this or error handling
+        switch (players.indexOf(player)) {
+            case -1: throw Error(`invalid player ${player}, expected one of ${players}`);
+            case 1: reverse = true;
+        }
+    }
     // modify log as needed
     if (gen) log = log.replace(RegExp("(?<=\\|gen\\|)\\d+"), gen)
     await page.setContent(`<input name="replayid" value="${battleID}" hidden="hidden"><script class="battle-log-data" type="text/plain">${log}</script><script src="https://play.pokemonshowdown.com/js/replay-embed.js"></script>`);
