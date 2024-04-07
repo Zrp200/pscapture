@@ -80,10 +80,11 @@ const parts = function* () {
             m = turnSpec.exec(turns);
             if (!m) continue; // two src arguments
             cmd.turnData = m;
+        } else if (m != null) {
+            // todo incorporate as middleware or something
+            if (!last.src) throw Error('no src!'); // can't infer src
+            else delete cmd.src;
         }
-        // todo incorporate as middleware or something
-        else if (!last.src) throw Error('no src!'); // can't infer src
-        else delete cmd.src;
         if (cmd.turnData) cmd.turnData = cmd.turnData.groups; else delete cmd.turnData;
         yield last = {...last, ...cmd};
         i = j + 1;

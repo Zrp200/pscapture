@@ -36,7 +36,7 @@ async function download(
     }) {
     if (!src.startsWith(PREFIX)) src = PREFIX + src
     let {start, end, step1, step2} = function () {
-        let {start, end, to} = turnData;
+        let {start, end, to} = turnData || {};
         start = parseInt(start)
         return {
             ...turnData,
