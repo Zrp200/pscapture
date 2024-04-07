@@ -27,6 +27,10 @@ If only `begin` is given, (turns=6, for example) `end` is assumed to be the same
 ### Replay Options
 #### -r, --reverse
 reverse viewpoint of battle
+#### --player, --side
+viewpoint to use for battle
+
+mutually exclusive with reverse
 #### --show
 Show chat or teams (the sidebars) and/or chat. Default is to hide these.
 
@@ -54,6 +58,9 @@ Show the turn indicator, default true
 
 #### --gif
 generate a gif with this input, default true
+
+#### --open
+open the gif/webm after generation
 
 ### Options:
 #### --help                
