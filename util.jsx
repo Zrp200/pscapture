@@ -47,7 +47,7 @@ async function download(
     let {start, end, step1, step2} = function () {
         if (turnData && turnData['step2'] === 'end' && !turnData.end) delete turnData['step2']
         let {start, end, to} = turnData || {};
-        start = parseInt(start)
+        start = parseInt(start) || 0
         return {
             ...turnData,
             start,
