@@ -5,7 +5,7 @@ const path = require("path")
 const fs = require("fs")
 const open = require('opener')
 
-const turnSpec = RegExp('^(?<start>\\d+|start)[|]?(?<step1>(?:(?=\\|)-\\D)?[^-]+)?(?<to>-(?<end>\\d+)?[|]?(?<step2>.+)?)?')
+const turnSpec = /^(?:(?<start>\d+|start)[|]?|[|])(?<step1>(?:(?=\|)-\D)?[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/
 const PREFIX = 'https://replay.pokemonshowdown.com/';
 
 const folders = ["webm", "gifs"]
