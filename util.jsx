@@ -78,24 +78,27 @@ async function download(
         id = name ? `${battleID}_${name}` : battleID;
     }
 
+    const turnMatcher = RegExp('(?=turn\\\\|)\\d+')
     const steps = await battle.evaluate((b) => b.stepQueue);
     let startStep = start && steps.indexOf(`|turn|${start}`)
     if (step1) {
-        const turnMatcher = RegExp('(?=turn\\\\|)\\d+')
-        while (startStep < steps.length) {
-            const step = steps[startStep].substring(1)
+        let i = startStep
+        while (i < steps.length) {
+            const step = steps[i].substring(1)
             if (end && step === (`turn|${end+1}`)) {
                 // not found
-                startStep = steps.length;
+                i = steps.length;
                 break;
             }
             // update start for faster startup if we weren't given start
             const m = turnMatcher.exec(step)
             if (m) start = parseInt(m[0]);
             if (step.startsWith(step1)) break;
-            startStep++;
+            // record the last major step or divider before this one
+            if (!step || !step.startsWith('-')) startStep = i;
+            i++;
         }
-        if (startStep === steps.length) throw Error(`${id}: start not found!`)
+        if (i === steps.length) throw Error(`${id}: start not found!`)
     }
     // end of queue (exclusive)
     const endStep = (end || step2) &&  (() => {
@@ -116,25 +119,28 @@ async function download(
         return 0;
     })()
     //console.log({id, startStep, endStep})
-    if (!step1) startStep = 0
     // cut the queue at the end if needed
     if (endStep) {
         steps.splice(endStep)
-        await battle.evaluate((b, q) => b.setQueue(q), steps)
+        await battle.evaluate((b, q) => b.stepQueue = q, steps)
     }
 
     // -- start logic; find start step
     // todo maybe if I mess with the queue, I can get it to seek the start aspect directly.
-    if (start) {
+    if (start && !step1) {
+        // direct seek if we are able
         await battle.evaluate((b, start) => b.seekTurn(start, true), start)
+    } else if (startStep) {
+        // seek the exact start step by messing with the queue
+        await battle.evaluate((b, q)=> {
+            const orig = b.stepQueue
+            // cut the queue at the point we want to seek to
+            b.stepQueue = q
+            b.seekTurn(Infinity, true)
+            b.stepQueue = orig
+            b.atQueueEnd = false
+        }, steps.toSpliced(startStep+1))
     }
-
-    // jump to current step
-    while(true) if(await battle.evaluate(b => {
-        b.play() // call next step
-        b.pause() // halt for processing
-        return b.currentStep;
-    }) >= startStep) break;
 
     let state = new EventEmitter()
 
