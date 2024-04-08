@@ -36,6 +36,7 @@ async function download(
     }) {
     if (!src.startsWith(PREFIX)) src = PREFIX + src
     let {start, end, step1, step2} = function () {
+        if (turnData && turnData['step2'] === 'end' && !turnData.end) delete turnData['step2']
         let {start, end, to} = turnData || {};
         start = parseInt(start)
         return {
@@ -77,84 +78,67 @@ async function download(
         id = name ? `${battleID}_${name}` : battleID;
     }
 
+    const steps = await battle.evaluate((b) => b.stepQueue);
+    let startStep = start && steps.indexOf(`|turn|${start}`)
+    if (step1) {
+        const turnMatcher = RegExp('(?=turn\\\\|)\\d+')
+        while (startStep < steps.length) {
+            const step = steps[startStep].substring(1)
+            if (end && step === (`turn|${end+1}`)) {
+                // not found
+                startStep = steps.length;
+                break;
+            }
+            // update start for faster startup if we weren't given start
+            const m = turnMatcher.exec(step)
+            if (m) start = parseInt(m[0]);
+            if (step.startsWith(step1)) break;
+            startStep++;
+        }
+        if (startStep === steps.length) throw Error(`${id}: start not found!`)
+    }
+    // end of queue (exclusive)
+    const endStep = (end || step2) &&  (() => {
+        if (!step2) return steps.indexOf(`|turn|${end+1}`, startStep)
+        let i = end ? steps.indexOf(`|turn|${end}`, startStep) : startStep
+        // current behavior won't match same turn
+        while(++i < steps.length) {
+            const step = steps[i].substring(1)
+            if (step.startsWith(step2)) break;
+            if (end && step.startsWith('turn')) return i; // not found
+        }
+        // search until we get a major action or a divider
+        while (++i < steps.length) {
+            const step = steps[i].substring(1)
+            // new major action stop at major action
+            if(step && step[0] !== '-') return i;
+        }
+        return 0;
+    })()
+    //console.log({id, startStep, endStep})
+    if (!step1) startStep = 0
+    // cut the queue at the end if needed
+    if (endStep) {
+        steps.splice(endStep)
+        await battle.evaluate((b, q) => b.setQueue(q), steps)
+    }
+
     // -- start logic; find start step
+    // todo maybe if I mess with the queue, I can get it to seek the start aspect directly.
     if (start) {
         await battle.evaluate((b, start) => b.seekTurn(start, true), start)
     }
-    if (step1) {
-        console.log([id, `searching for "${step1}"`]);
-        while (true) {
-            let thisStep = await battle.evaluate(b => b.stepQueue[b.currentStep]);
-            console.log([id, thisStep])
-            if (thisStep.startsWith(step1, 1)) break
-            await battle.evaluate(b => {
-                b.play() // call next step
-                b.pause() // halt for processing
-            })
-        }
-    }
 
-    // -- end logic
-    let playToEnd
-    if (step2 === 'end') {
-        step2 = ''
-        if (end) {
-            console.log([id, `warning: "end" option given but end=${end}`])
-        }
-        playToEnd = true
-    } else {
-        playToEnd = false
-    }
+    // jump to current step
+    while(true) if(await battle.evaluate(b => {
+        b.play() // call next step
+        b.pause() // halt for processing
+        return b.currentStep;
+    }) >= startStep) break;
 
     let state = new EventEmitter()
 
-    // fixme this can be calculated in advance for greater accuracy
-    async function seekEndStep() {
-        console.log([id, `searching for "${step2}"`]);
-        // don't duplicate this logic
-        let prev = null, step = null
-        const newStep = async () => {
-            while (true) {
-                step = await battle.evaluate(b => b.stepQueue[b.currentStep])
-                if (prev !== step) {
-                    // todo clean up debug code. This is actually useful sometimes to get a bit more accuracy in follow-up uses of the program
-                    console.log([id, step]);
-                    prev = step
-                    return step = step ? step.substring(1) : null;
-                }
-            }
-        }
-        const endOfTurn = () => step.startsWith('turn') && prev != null && prev !== step
-        do {
-            await newStep();
-            if (typeof step != 'string') return
-            if (endOfTurn()) {
-                console.log([id, `hit end of turn while looking for ${step2}`])
-                if (end) return;
-            }
-        } while (!step.startsWith(step2))
-        let divider = false;
-        do {
-            await newStep();
-            if (!step) divider = true;
-        } while (!endOfTurn() && !step || !divider && step.startsWith('-')) // accompanying minor actions should be included
-    }
-
-    const battleEnd = new Promise(resolve => {
-        if (end) {
-            state.on('turn', async () => {
-                const turn = await page.evaluate(b => b.turn, battle);
-                console.log([id, 'turn ' + turn])
-                if (turn < end) return; // this works because the turn event is not emitted on the first turn active
-                if (turn === end && step2) await seekEndStep()
-                resolve();
-            })
-            if (step2 && end === start) state.once('record', () => state.emit('turn')) // emit for first turn if the end is expected for that turn
-        }
-        else if (step2) state.on('record', () => resolve(seekEndStep()))
-        if (!playToEnd) state.on('ended', resolve)
-        state.on('atqueueend', () => setTimeout(resolve, playToEnd && 100))
-    })
+    const battleEnd = new Promise(resolve => state.on('atqueueend', resolve))
 
     // -- options/setup
     await page.exposeFunction('sub', (type, ...args) => {
@@ -165,7 +149,7 @@ async function download(
 
     const showChat = show === 'chat'
 
-    await battle.evaluate((b, showChat, speed, hardcore) => {
+    const delay = await battle.evaluate((b, showChat, speed, hardcore) => {
         b.subscribe(window.sub)
         b.ignoreNicks = !showChat
         // noinspection JSUnresolvedReference
@@ -174,6 +158,7 @@ async function download(
         if (hardcore) { // noinspection JSUnresolvedReference
             b.setHardcoreMode(true)
         }
+        return b.messageFadeTime;
     }, showChat, speed, hardcore)
 
     // -- cropping logic
@@ -218,6 +203,7 @@ async function download(
     });
     await battle.evaluate(b => b.play())
     await battleEnd
+    await new Promise(r => setTimeout(r, delay))
     await recorder.stop()
     await Promise.all([
         fixwebm(file, shouldOpen && !gif).then(() => {
