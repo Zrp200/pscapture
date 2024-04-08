@@ -18,21 +18,30 @@ let mkdir = function () {
 
 const awaitSync = promises => promises.reduce((pre, cur) => pre.then(cur), Promise.resolve())
 
-module.exports = {download, awaitSync, turnSpec}
+const defaults = {
+    show: false,
+    speed: 'fast',
+    vspeed: 1,
+    gif: true,
+    turns: true,
+    shouldOpen: true,
+}
+
+module.exports = {download, awaitSync, turnSpec, defaults}
 
 async function download(
     page, {
         src,
         turnData,
-        show = false,
+        show = defaults.show,
         reverse = false, player,
         vspeed = 1,
-        speed,
+        speed = defaults.speed,
         gen, hardcore,
-        gif = true,
-        shouldOpen = true,
+        gif = defaults.gif,
+        shouldOpen = defaults.shouldOpen,
         id,
-        turns = true, // show turn indicator
+        turns = defaults.turns, // show turn indicator
     }) {
     if (!src.startsWith(PREFIX)) src = PREFIX + src
     let {start, end, step1, step2} = function () {
@@ -73,8 +82,8 @@ async function download(
             if (step2) name += step2;
         }
         if (reverse) name += '_p2'
-        if (show) name += `_show-${show}`
-        if (speed) name += '_' + speed
+        if (show !== defaults.show) name += `_show-${show}`
+        if (speed !== defaults.speed) name += '_' + speed
         id = name ? `${battleID}_${name}` : battleID;
     }
 

@@ -1,7 +1,7 @@
 const {launch} = require("puppeteer");
 const yargs = require("yargs")
 
-const {download, turnSpec, awaitSync} = require("./util.jsx")
+const {download, turnSpec, awaitSync, defaults} = require("./util.jsx")
 
 const global = {
     bulk: {
@@ -57,13 +57,7 @@ yargs()
     .options(global)
     .options(save)
     .demandCommand(1)
-    .default({
-        'show': false,
-        'gif': true,
-        'speed': 'normal',
-        'vspeed': 1,
-        'turns': true
-    })
+    .default(defaults)
     .strictOptions() // verify all options are legitimate
     .parse(process.argv.slice(2))
 
