@@ -195,21 +195,20 @@ async function download(
     // -- recording logic
     await mkdir[WEBM]; // just ensure that it's done
     let file = path.resolve(WEBM, `${id}.webm`)
+    if (!startStep) {
+        // show team preview if showing team 0
+        // wonder if I should add a toggle for this
+        await page.$eval('.playbutton', p => p.style.display = 'none')
+    }
     let recorder = await page.screencast({
         path: file,
         crop, speed: vspeed,
     })
-    recorder.pause()
-    state.once('playing', async () => {
-        // noinspection JSUnresolvedReference
-        await page.waitForFunction(() => !$('playbutton').length && !$('seeking').length, {polling: "mutation"});
-        console.log([id, 'record'])
-        recorder.resume()
-        state.emit('record')
-    });
+    console.log([id, 'record'])
+    if (!startStep) await new Promise(r => setTimeout(r, 1000)) // capture team preview
     await battle.evaluate(b => b.play())
     await battleEnd
-    await new Promise(r => setTimeout(r, delay))
+    await new Promise(r => setTimeout(r, delay)) // give some extra time for the animations to finish
     await recorder.stop()
     await Promise.all([
         fixwebm(file, shouldOpen && !gif).then(() => {
