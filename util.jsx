@@ -54,6 +54,7 @@ async function download(
             end: parseInt(end || (to ? 0 : start)),
         }
     }();
+    if (start && end && start > end) throw Error('invalid turn range: ' + [start, end])
 
     /// get page to work with
     let {log, id: battleID, players} = await page.goto(`${src}.json`).then(i => i.json())
