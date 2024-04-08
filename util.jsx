@@ -77,6 +77,24 @@ async function download(
         id = name ? `${battleID}_${name}` : battleID;
     }
 
+    // -- start logic; find start step
+    if (start) {
+        await battle.evaluate((b, start) => b.seekTurn(start, true), start)
+    }
+    if (step1) {
+        console.log([id, `searching for "${step1}"`]);
+        while (true) {
+            let thisStep = await battle.evaluate(b => b.stepQueue[b.currentStep]);
+            console.log([id, thisStep])
+            if (thisStep.startsWith(step1, 1)) break
+            await battle.evaluate(b => {
+                b.play() // call next step
+                b.pause() // halt for processing
+            })
+        }
+    }
+
+    // -- end logic
     let playToEnd
     if (step2 === 'end') {
         step2 = ''
@@ -90,6 +108,7 @@ async function download(
 
     let state = new EventEmitter()
 
+    // fixme this can be calculated in advance for greater accuracy
     async function seekEndStep() {
         console.log([id, `searching for "${step2}"`]);
         // don't duplicate this logic
@@ -137,14 +156,15 @@ async function download(
         state.on('atqueueend', () => setTimeout(resolve, playToEnd && 100))
     })
 
+    // -- options/setup
     await page.exposeFunction('sub', (type, ...args) => {
         // turn has custom logic since 'turn' is super useless by itself
         if (state.emit(type, args) && type !== 'turn') console.log([id, type])
     })
 
+
     const showChat = show === 'chat'
 
-// options
     await battle.evaluate((b, showChat, speed, hardcore) => {
         b.subscribe(window.sub)
         b.ignoreNicks = !showChat
@@ -156,7 +176,7 @@ async function download(
         }
     }, showChat, speed, hardcore)
 
-
+    // -- cropping logic
     let battleFrame = page.waitForSelector('.battle');
     let innerbattle = battleFrame.then(b => b.waitForSelector('.innerbattle'))
     const crop =
@@ -181,22 +201,7 @@ async function download(
                     return box
                 })
 
-    if (start) {
-        await battle.evaluate((b, start) => b.seekTurn(start, true), start)
-    }
-    if (step1) {
-        console.log([id, `searching for "${step1}"`]);
-        while (true) {
-            let thisStep = await battle.evaluate(b => b.stepQueue[b.currentStep]);
-            console.log([id, thisStep])
-            if (thisStep.startsWith(step1, 1)) break
-            await battle.evaluate(b => {
-                b.play() // call next step
-                b.pause() // halt for processing
-            })
-        }
-    }
-
+    // -- recording logic
     await mkdir[WEBM]; // just ensure that it's done
     let file = path.resolve(WEBM, `${id}.webm`)
     let recorder = await page.screencast({
