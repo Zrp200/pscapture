@@ -234,9 +234,8 @@ async function download(
 
 async function fixwebm(file, shouldOpen) {
     return new Promise((resolve, reject) => {
-        const tmp = file + '.tmp'
+        const tmp = file + '.tmp.webm'
         const command = ffmpeg(file)
-            .format('webm')
             .withVideoCodec("copy")
             .withAudioCodec("copy") // Copy the video and audio streams without re-encoding
             .output(tmp)
