@@ -4,6 +4,7 @@
   "description": "A Node.js application to make gifs out of notable moments in a battle",
   "main": "replaytogif.js",
   "dependencies": {
+    "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "fluent-ffmpeg": "^2.1.2",
     "opener": "^1.5.2",
     "puppeteer": "^22.5.0",

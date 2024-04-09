@@ -1,5 +1,6 @@
 const {EventEmitter} = require("puppeteer");
-const ffmpeg = require("fluent-ffmpeg")
+const ffmpeg = require("fluent-ffmpeg");
+ffmpeg.setFfmpegPath(require('@ffmpeg-installer/ffmpeg').path)
 
 const path = require("path")
 const fs = require("fs")
