@@ -83,6 +83,8 @@ async function download(
             if (end && (step2 || end !== start)) name += end
             if (step2) name += step2;
         }
+        // remove illegal characters
+        name = name.replaceAll(/[^\w\-_]/g, '')
         if (reverse) name += '_p2'
         if (show !== defaults.show) name += `_show-${show}`
         if (speed !== defaults.speed) name += '_' + speed
