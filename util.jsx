@@ -6,7 +6,7 @@ const path = require("path")
 const fs = require("fs")
 const open = require('opener')
 
-const turnSpec = /^(?:(?<start>\d+)|(?=[|]|start))[|]?(?<step1>(?:(?=\|)-\D)?[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/
+const turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t))[|]?(?<step1>(?:(?=\|)-\D)?[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/
 const PREFIX = 'https://replay.pokemonshowdown.com/';
 
 const folders = ["webm", "gifs"]
@@ -33,7 +33,7 @@ module.exports = {download, awaitSync, turnSpec, defaults}
 async function download(
     page, {
         src,
-        turnData,
+        turnData = {},
         show = defaults.show,
         reverse = false, player,
         vspeed = 1,
@@ -45,16 +45,33 @@ async function download(
         turns = defaults.turns, // show turn indicator
     }) {
     if (!src.startsWith(PREFIX)) src = PREFIX + src
-    let {start, end, step1, step2} = function () {
+    // todo this lets me optimize timestamp-based searching
+    const timestamp = Array(2);
+    {
+        // process turndata
         if (turnData && turnData['step2'] === 'end' && !turnData.end) delete turnData['step2']
-        let {start, end, to} = turnData || {};
-        start = parseInt(start) || 0
-        return {
-            ...turnData,
-            start,
-            end: parseInt(end || (to ? 0 : start)),
+        let {to, step1, step2} = turnData;
+        // detect timestamps. if turns are stupidly big (2000) they're probably timestamps.
+        // fixme duplication
+        const start = parseInt(turnData.start)
+        if (start > 2000 && !step1) {
+            turnData.step1 = `t:|${start}`
+            delete turnData.start
+        } else if (start) turnData.start = start
+
+        const end = parseInt(turnData.end || (to ? 0 : turnData.start))
+        if (end > 2000 && !step2) {
+            turnData.step2 = `t:|${end}`
+            delete turnData.end
+        } else if (end) turnData.end = end
+
+        for (let k of [1,2]) {
+            const step = 'step' + k
+            // timestamps can be specified with 't:|TIME', 't:TIME', or 'tTIME'. this fixes the latter two.
+            if (turnData[step]) turnData[step] = turnData[step].replace(/^t(?::\|?)?(\d+)$/, (s, t) => `t:|${timestamp[k-1] = t}`)
         }
-    }();
+    }
+    let {start=0, end=0, step1, step2} = turnData
     if (start && end && start > end) throw Error('invalid turn range: ' + [start, end])
 
     /// get page to work with
