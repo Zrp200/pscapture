@@ -68,6 +68,7 @@ async function download(
         for (let k of [1,2]) {
             const step = 'step' + k
             // timestamps can be specified with 't:|TIME', 't:TIME', or 'tTIME'. this fixes the latter two.
+            // todo implement a shorthand for the end timestamp when using two stamps
             if (turnData[step]) turnData[step] = turnData[step].replace(/^t(?::\|?)?(\d+)$/, (s, t) => `t:|${timestamp[k-1] = t}`)
         }
     }
@@ -114,6 +115,7 @@ async function download(
     }
 
     const turnMatcher = RegExp('(?=turn\\\\|)\\d+')
+    const timeStampMatcher = /(?<=^t:\|)\d+$/
     const steps = await battle.evaluate((b) => b.stepQueue);
     let startStep = start && steps.indexOf(`|turn|${start}`)
     if (step1) {
@@ -128,9 +130,20 @@ async function download(
             // update start for faster startup if we weren't given start
             const m = turnMatcher.exec(step)
             if (m) start = parseInt(m[0]);
-            if (step.startsWith(step1)) break;
-            // record the last major step or divider before this one
-            if (!step || !step.startsWith('-')) startStep = i;
+            if (timestamp[0]) {
+                // optimize if using a timestamp; we don't have to assume nearly as much
+                const
+                    [time] = timeStampMatcher.exec(step) || [0],
+                    diff = timestamp[0] - time;
+                if (diff <= 0) {
+                    startStep = diff ? steps.length : i;
+                    break;
+                } // use this as the stopping point. if we passed it, then just stop here.
+            } else {
+                if (step.startsWith(step1)) break;
+                // record the last major step or divider before this one
+                if (!step || !step.startsWith('-')) startStep = i;
+            }
             i++;
         }
         if (i === steps.length) throw Error(`${id}: start not found!`)
@@ -142,7 +155,12 @@ async function download(
         // current behavior won't match same turn
         while(++i < steps.length) {
             const step = steps[i].substring(1)
-            if (step.startsWith(step2)) break;
+            if (timestamp[1]) {
+                // fixme duplicated
+                // optimize if using a timestamp; we don't have to assume nearly as much
+                const [time] = timeStampMatcher.exec(step) || [];
+                if (time && time - timestamp[1] >= 0) return i; // use this as the stopping point. if we passed it, then just stop here.
+            } else if (step.startsWith(step2)) break;
             if (end && step.startsWith('turn')) return i; // not found
         }
         // search until we get a major action or a divider
