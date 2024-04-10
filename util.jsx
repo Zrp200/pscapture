@@ -92,20 +92,25 @@ async function download(
         await battle.evaluate(b => b.switchViewpoint())
     }
     if (!id) {
-        let name = ''
-        if (start) name += start
-        if (step1) name += step1
+        let name = '';
+        if (start) name += start;
+        if (step1) name += step1;
         if (step2 || end && end !== start) {
-            name += '-'
-            if (end && (step2 || end !== start)) name += end
+            name += '-';
+            if (end && (step2 || end !== start)) name += end;
             if (step2) name += step2;
         }
-        // remove illegal characters
-        name = name.replaceAll(/[^\w\-_]/g, '')
-        if (reverse) name += '_p2'
-        if (show !== defaults.show) name += `_show-${show}`
-        if (speed !== defaults.speed) name += '_' + speed
-        id = name ? `${battleID}_${name}` : battleID;
+        const parts = [battleID];
+        if (name) {
+            // remove illegal characters
+            parts.push(name.replaceAll(/[^\w\-_]/g, ''));
+            // add additional properties
+            if (reverse) parts.push('p2');
+            if (show !== defaults.show) parts.push(`show-${show}`);
+            if (speed !== defaults.speed) parts.push(speed);
+            if (vspeed !== defaults.vspeed) parts.push(vspeed + 'x');
+        }
+        id = parts.join('_');
     }
 
     const turnMatcher = RegExp('(?=turn\\\\|)\\d+')
