@@ -96,7 +96,7 @@ async function download(
                 }],
                 // -- allow shorthand for timestamps
                 // timestamps can be specified with 't:|TIME', 't:TIME', or 'tTIME'. this fixes the latter two.
-                [[step], step => /(?<=^t(:\|?)?)(\d+)$/.exec(step), ([time]) => `t:|${timestamp[index] = time}`],
+                [[step], step => /(?<=^t(:\|?)?)\d+$/.exec(step), ([time]) => `t:|${timestamp[index] = time}`],
             ]) {
                 let v = turnData[src] && match(turnData[src]);
                 if (transform && v) v = transform(v);
@@ -120,8 +120,8 @@ async function download(
         }
     }
     // modify log as needed
-    if (gen) log = log.replace(RegExp("(?<=\\|gen\\|)\\d+"), gen)
-    await page.setContent(`<input name="replayid" value="${battleID}" hidden="hidden"><script class="battle-log-data" type="text/plain">${log}</script><script src="https://play.pokemonshowdown.com/js/replay-embed.js"></script>`);
+    if (gen) log = log.replace(/(?<=^\|gen\|)\d+/, gen)
+    await page.setContent(`<input name="replayid" value="${battleID}" hidden><script class="battle-log-data" type="text/plain">${log}</script><script src="https://play.pokemonshowdown.com/js/replay-embed.js"></script>`);
     if (!turns) await page.addStyleTag({content: ".turn { display: none }"})
     let battle = await page.evaluateHandle(() => Replays.battle)
     if (reverse) {
