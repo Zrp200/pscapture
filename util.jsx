@@ -287,17 +287,20 @@ async function download(
     // -- recording logic
     await mkdir[WEBM]; // just ensure that it's done
     let file = path.resolve(WEBM, `${id}.webm`)
+    let teamPreview = false;
     if (!startStep) {
         // show team preview if showing team 0
         // wonder if I should add a toggle for this
-        await page.$eval('.playbutton', p => p.style.display = 'none')
+        const s = await page.$eval('.playbutton', p => p.style.display = 'none')
+        teamPreview = steps.includes('|teampreview')
+        await s;
     }
     let recorder = await page.screencast({
         path: file,
         crop, speed: vspeed,
     })
     console.log([id, 'record'])
-    if (!startStep) await new Promise(r => setTimeout(r, 1000)) // capture team preview
+    if (teamPreview) await new Promise(r => setTimeout(r, 1000))
     await battle.evaluate(b => b.play())
     await battleEnd
     await new Promise(r => setTimeout(r, delay)) // give some extra time for the animations to finish
