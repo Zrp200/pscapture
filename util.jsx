@@ -98,7 +98,8 @@ async function download(
                 // timestamps can be specified with 't:|TIME', 't:TIME', or 'tTIME'. this fixes the latter two.
                 [[step], step => /(?<=^t(:\|?)?)(\d+)$/.exec(step), ([time]) => `t:|${timestamp[index] = time}`],
             ]) {
-                const v = turnData[src] && match(turnData[src]) && (transform ? transform(v) : v);
+                let v = turnData[src] && match(turnData[src]);
+                if (transform && v) v = transform(v);
                 if (!v) continue;
                 turnData[dst] = v;
                 // swap turn and step if needed
