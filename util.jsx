@@ -114,7 +114,7 @@ async function download(
         id = parts.join('_');
     }
 
-    const turnMatcher = RegExp('(?=turn\\\\|)\\d+')
+    const turnMatcher = /(?<=^turn\|)\d+$/
     const timeStampMatcher = /(?<=^t:\|)\d+$/
     const steps = await battle.evaluate((b) => b.stepQueue);
     let startStep = start && steps.indexOf(`|turn|${start}`)
