@@ -6,8 +6,10 @@ const path = require("path")
 const fs = require("fs")
 const open = require('opener')
 
-const turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t))[|]?(?<step1>(?:(?=\|)-\D)?[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/
-const PREFIX = 'https://replay.pokemonshowdown.com/';
+const
+    turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t))[|]?(?<step1>(?:(?=\|)-\D)?[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/,
+    turnMatcher = /(?<=^turn[|]?)\d+$/,
+    PREFIX = 'https://replay.pokemonshowdown.com/';
 
 const folders = ["webm", "gifs"]
 const [WEBM, GIF] = folders
@@ -28,12 +30,12 @@ const defaults = {
     shouldOpen: true,
 }
 
-module.exports = {download, awaitSync, turnSpec, defaults}
+module.exports = {download, awaitSync, parseTurns, turnSpec, defaults}
 
 async function download(
     page, {
         src,
-        turnData = {},
+        turnData: {start, end, seekEnd = !end} = parseTurns('all'),
         show = defaults.show,
         reverse = false, player,
         vspeed = 1,
@@ -45,70 +47,6 @@ async function download(
         turns = defaults.turns, // show turn indicator
     }) {
     if (!src.startsWith(PREFIX)) src = PREFIX + src
-
-    const timestamp = Array(2);
-    const turnMatcher = /(?<=^turn[|]?)\d+$/;
-    if (turnData) {
-        // -- process match edge cases
-        turnData.to = !!turnData.to; // convert to boolean if it isn't already
-        ['start', 'end'].forEach((turn, index) => {
-            const step = `step${index + 1}`;
-            // this is basically just a processing pipeline
-            for (const [[src, dst=src], match, transform] of [
-                // -- detect timestamps. if turns are stupidly big they're probably timestamps.
-                [[turn, step], (t, conflict=turnData[step]) => {
-                    if (t.length <= 4) return;
-                    if (conflict) throw Error(`Nonsensical turn ${t} given for ${turn}`);
-                    return `t:|${t}`;
-                }],
-                // -- turn specified by protocol "turn|TURN"
-                [[step, turn], step => turnMatcher.exec(step), ([t], conflict=turnData[turn]) => {
-                    // turn specified in two ways at once (ie 3turn4) is meaningless
-                    if (conflict) throw Error(`turn ${t} specified by protocol, but turn given as ${conflict}`);
-                    return t;
-                }],
-                // -- convert turn from string to int
-                [[turn], parseInt],
-                [[step], s => {
-                    // special cases
-                    switch(s) {
-                        case 'all':
-                            // this is just giving no arguments
-                            if (turnData.to || turnData[turn]) throw Error('all should only be used by itself');
-                            turnData.to = true;
-                            // fall through
-                        case 'end': // end is pointless
-                            delete turnData[step];
-                            break;
-                        case 'turn':
-                            // equivalent to just omit this
-                            if(turnData.to && index === 1) turnData.to = !turnData[turn];
-                            delete turnData[step]
-                            break;
-                        // identifier for stopping at next timestamp, instead of next turn
-                        case 't':
-                            if (index === 0) throw Error('t should not be used in start');
-                            if (!timestamp[0]) throw Error('Cannot infer end time if no start time was given!');
-                            // exploit implementation for searching for end time by setting end time to one after the start
-                            timestamp[1] = String(parseInt(timestamp[0])+1);
-                            break;
-                    }
-                }],
-                // -- allow shorthand for timestamps
-                // timestamps can be specified with 't:|TIME', 't:TIME', or 'tTIME'. this fixes the latter two.
-                [[step], step => /(?<=^t(:\|?)?)\d+$/.exec(step), ([time]) => `t:|${timestamp[index] = time}`],
-            ]) {
-                let v = turnData[src] && match(turnData[src]);
-                if (transform && v) v = transform(v);
-                if (!v) continue;
-                turnData[dst] = v;
-                // swap turn and step if needed
-                if (src !== dst) delete turnData[src];
-            }
-        });
-    }
-    let {start=0, end=0, step1, step2, to: seekEnd} = turnData || {to: true};
-    if (start && end && start > end) throw Error('invalid turn range: ' + [start, end])
 
     /// get page to work with
     let {log, id: battleID, players} = await page.goto(`${src}.json`).then(i => i.json())
@@ -129,17 +67,9 @@ async function download(
     }
     if (!id) {
         let name = '';
-        if (start) name += start;
-        if (step1) name += step1;
-        if (seekEnd) {
-            name += '-';
-            if (end || step2) {
-                if (end) name += end;
-                if (step2) name += step2;
-            } else {
-                name += 'end';
-            }
-        }
+        const toStr = ({turn, step}) => [turn, step].filter(i => i).join();
+        name += toStr(start)
+        if (seekEnd) name += `-${toStr(end) || 'end'}`;
         const parts = [battleID];
         if (name) {
             // remove illegal characters
@@ -155,30 +85,30 @@ async function download(
 
     const timeStampMatcher = /(?<=^t:\|)\d+$/
     const steps = await battle.evaluate((b) => b.stepQueue);
-    let startStep = start && steps.indexOf(`|turn|${start}`)
-    if (step1) {
+    let startStep = start.turn && steps.indexOf(`|turn|${start.turn}`)
+    if (start && start.step) {
         let i = startStep
         while (i < steps.length) {
             const step = steps[i].substring(1)
-            if (end && step === (`turn|${end+1}`)) {
+            if (end && step === (`turn|${end.turn+1}`)) {
                 // not found
                 i = steps.length;
                 break;
             }
             // update start for faster startup if we weren't given start
             const m = turnMatcher.exec(step)
-            if (m) start = parseInt(m[0]);
-            if (timestamp[0]) {
+            if (m) start.turn = parseInt(m[0]);
+            if (start.time) {
                 // optimize if using a timestamp; we don't have to assume nearly as much
                 const
                     [time] = timeStampMatcher.exec(step) || [0],
-                    diff = timestamp[0] - time;
+                    diff = start.time - time;
                 if (diff <= 0) {
                     startStep = diff ? steps.length : i;
                     break;
                 } // use this as the stopping point. if we passed it, then just stop here.
             } else {
-                if (step.startsWith(step1)) break;
+                if (step.startsWith(start.step)) break;
                 // record the last major step or divider before this one
                 if (!step || !step.startsWith('-')) startStep = i;
             }
@@ -186,21 +116,21 @@ async function download(
         }
         if (i === steps.length) throw Error(`${id}: start not found!`)
     }
-    if (!seekEnd) end = start;
+    if (!seekEnd) end.turn = start.turn;
     // end of queue (exclusive)
-    const endStep = (end || step2) &&  (() => {
-        if (!step2) return steps.indexOf(`|turn|${end+1}`, startStep)
-        let i = end ? steps.indexOf(`|turn|${end}`, startStep) : startStep
+    const endStep = end &&  (() => {
+        if (!end.step) return steps.indexOf(`|turn|${end.turn+1}`, startStep)
+        let i = end.turn ? steps.indexOf(`|turn|${end.turn}`, startStep) : startStep
         // current behavior won't match same turn
         while(++i < steps.length) {
             const step = steps[i].substring(1)
-            if (timestamp[1]) {
+            if (end.time) {
                 // fixme duplicated
                 // optimize if using a timestamp; we don't have to assume nearly as much
                 const [time] = timeStampMatcher.exec(step) || [];
-                if (time && time - timestamp[1] >= 0) return i; // use this as the stopping point. if we passed it, then just stop here.
-            } else if (step.startsWith(step2)) break;
-            if (end && step.startsWith('turn')) return i; // not found
+                if (time && time - end.time >= 0) return i; // use this as the stopping point. if we passed it, then just stop here.
+            } else if (step.startsWith(end.step)) break;
+            if (end.turn && step.startsWith('turn')) return i; // not found
         }
         // search until we get a major action or a divider
         while (++i < steps.length) {
@@ -219,19 +149,21 @@ async function download(
 
     // -- start logic; find start step
     // todo maybe if I mess with the queue, I can get it to seek the start aspect directly.
-    if (start && !step1) {
-        // direct seek if we are able
-        await battle.evaluate((b, start) => b.seekTurn(start, true), start)
-    } else if (startStep) {
-        // seek the exact start step by messing with the queue
-        await battle.evaluate((b, q)=> {
-            const orig = b.stepQueue
-            // cut the queue at the point we want to seek to
-            b.stepQueue = q
-            b.seekTurn(Infinity, true)
-            b.stepQueue = orig
-            b.atQueueEnd = false
-        }, steps.toSpliced(startStep+1))
+    if (start) {
+        if (start.turn && !start.step) {
+            // direct seek if we are able
+            await battle.evaluate((b, start) => b.seekTurn(start, true), start.turn)
+        } else if (startStep) {
+            // seek the exact start step by messing with the queue
+            await battle.evaluate((b, q)=> {
+                const orig = b.stepQueue
+                // cut the queue at the point we want to seek to
+                b.stepQueue = q
+                b.seekTurn(Infinity, true)
+                b.stepQueue = orig
+                b.atQueueEnd = false
+            }, steps.toSpliced(startStep+1))
+        }
     }
 
     let state = new EventEmitter()
@@ -368,4 +300,79 @@ async function makeGif(file, shouldOpen = true, verbose = false) {
         .catch(() => {
         }) // do nothing
 
+}
+
+function parseTurns(turns) {
+    let spec = turnSpec.exec(turns)
+    if (!spec) throw Error( "Invalid Turn Spec");
+    let {groups: turnData} = spec
+    // -- process match edge cases
+    let seekEnd = !!turnData.to; // convert to boolean if it isn't already
+    const timestamp = ['',''];
+    const rangeKeys = ['start', 'end'];
+    rangeKeys.forEach((turn, index) => {
+        const step = `step${index + 1}`;
+        // this is basically just a processing pipeline
+        for (const [[src, dst=src], match, transform] of [
+            // -- detect timestamps. if turns are stupidly big they're probably timestamps.
+            [[turn, step], (t, conflict=turnData[step]) => {
+                if (t.length <= 4) return;
+                if (conflict) throw Error(`Nonsensical turn ${t} given for ${turn}`);
+                return `t:|${t}`;
+            }],
+            // -- turn specified by protocol "turn|TURN"
+            [[step, turn], step => turnMatcher.exec(step), ([t], conflict=turnData[turn]) => {
+                // turn specified in two ways at once (ie 3turn4) is meaningless
+                if (conflict) throw Error(`turn ${t} specified by protocol, but turn given as ${conflict}`);
+                return t;
+            }],
+            // -- convert turn from string to int
+            //[[turn], parseInt],
+            [[step], s => {
+                // special cases
+                switch(s) {
+                    case 'all':
+                        // this is just giving no arguments
+                        if (seekEnd || turnData[turn]) throw Error('all should only be used by itself');
+                        seekEnd = true;
+                    // fall through
+                    case 'end': // end is pointless
+                        delete turnData[step];
+                        break;
+                    case 'turn':
+                        // equivalent to just omit this
+                        if(seekEnd && index === 1) seekEnd = !turnData[turn];
+                        delete turnData[step];
+                        break;
+                    // identifier for stopping at next timestamp, instead of next turn
+                    case 't':
+                        if (index === 0) throw Error('t should not be used in start');
+                        if (!turnData.timestamp[0]) throw Error('Cannot infer end time if no start time was given!');
+                        // exploit implementation for searching for end time by setting end time to one after the start
+                        timestamp[1] = String(parseInt(timestamp[0])+1);
+                        break;
+                }
+            }],
+            // -- allow shorthand for timestamps
+            // timestamps can be specified with 't:|TIME', 't:TIME', or 'tTIME'. this fixes the latter two.
+            [[step], step => /(?<=^t(:\|?)?)\d+$/.exec(step), ([time]) => `t:|${timestamp[index] = time}`],
+        ]) {
+            let v = turnData[src] && match(turnData[src]);
+            if (transform && v) v = transform(v);
+            if (!v) continue;
+            turnData[dst] = v;
+            // swap turn and step if needed
+            if (src !== dst) delete turnData[src];
+        }
+    });
+    const [start, end] = rangeKeys.map( (k, i) => ({
+        turn: parseInt(turnData[k]),
+        step: turnData[`step${i+1}`],
+        time: timestamp[i],
+    }))
+    // verify ranges
+    for (const k in ['turn', 'time']) if (start[k] && end[k] && start[k] > end[k]) {
+        throw Error(`invalid ${k} range: ${[start[k], end[k]]}`)
+    }
+    return {start, end, seekEnd};
 }

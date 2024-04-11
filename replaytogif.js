@@ -1,7 +1,7 @@
 const {launch} = require("puppeteer");
 const yargs = require("yargs")
 
-const {download, turnSpec, awaitSync, defaults} = require("./util.jsx")
+const {download, parseTurns, turnSpec, awaitSync, defaults} = require("./util.jsx")
 
 const global = {
     bulk: {
@@ -71,21 +71,29 @@ const parts = function* () {
     let parser = yargs().options(save)
     let last = {}, i = 0, j = argv.length;
     while (i < j) {
-        let {_: [src, turns, ...other], $0, ...opts} = parser.parse(argv.slice(i, j--));
+        const slice = argv.slice(i, j--);
+        let {_: [src, turns, ...other], $0, ...opts} = parser.parse(slice);
         if (other.length || !src) continue;
-        let m = turnSpec.exec(src)
-        let cmd = {src, turnData: m, ...opts};
+        let m = turnSpec.test(src)
+        let cmd = {...opts, src, turnData: m && src};
         if (turns) {
             if (m) continue; // two turn arguments
-            m = turnSpec.exec(turns);
-            if (!m) continue; // two src arguments
-            cmd.turnData = m;
-        } else if (m != null) {
+            if (!turnSpec.test(turns)) continue; // two src arguments
+            cmd.turnData = turns
+        } else if (m) {
             // todo incorporate as middleware or something
             if (!last.src) throw Error('no src!'); // can't infer src
             else delete cmd.src;
         }
-        if (cmd.turnData) cmd.turnData = cmd.turnData.groups; else delete cmd.turnData;
+        if (cmd.turnData) {
+            // fixme distinguish between exceptions from this and exceptions from other stuff
+            try {
+                cmd.turnData = parseTurns(cmd.turnData);
+            } catch (e) {
+                console.error(`${slice}: ${e}`);
+                return;
+            }
+        } else delete cmd.turnData;
         yield last = {...last, ...cmd};
         i = j + 1;
         j = argv.length;
