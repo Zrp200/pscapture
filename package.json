@@ -1,6 +1,6 @@
 {
   "name": "replaytogif",
-  "version": "0.4.1",
+  "version": "0.4.2",
   "description": "A Node.js application to make gifs out of notable moments in a battle",
   "main": "replaytogif.js",
   "dependencies": {
