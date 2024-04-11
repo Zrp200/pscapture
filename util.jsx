@@ -49,9 +49,8 @@ async function download(
     const timestamp = Array(2);
     const turnMatcher = /(?<=^turn[|]?)\d+$/;
     if (turnData) {
-        // process turndata
-        if (turnData['step2'] === 'end' && !turnData.end) delete turnData['step2'];
         // -- process match edge cases
+        turnData.to = !!turnData.to; // convert to boolean if it isn't already
         ['start', 'end'].forEach((turn, index) => {
             const step = `step${index + 1}`;
             // this is basically just a processing pipeline
@@ -70,26 +69,44 @@ async function download(
                 }],
                 // -- convert turn from string to int
                 [[turn], parseInt],
+                [[step], s => {
+                    // special cases
+                    switch(s) {
+                        case 'all':
+                            // this is just giving no arguments
+                            if (turnData.to || turnData[turn]) throw Error('all should only be used by itself');
+                            turnData.to = true;
+                            // fall through
+                        case 'end': // end is pointless
+                            delete turnData[step];
+                            break;
+                        case 'turn':
+                            // equivalent to just omit this
+                            if(turnData.to && index === 1) turnData.to = !turnData[turn];
+                            delete turnData[step]
+                            break;
+                        // identifier for stopping at next timestamp, instead of next turn
+                        case 't':
+                            if (index === 0) throw Error('t should not be used in start');
+                            if (!timestamp[0]) throw Error('Cannot infer end time if no start time was given!');
+                            // exploit implementation for searching for end time by setting end time to one after the start
+                            timestamp[1] = String(parseInt(timestamp[0])+1);
+                            break;
+                    }
+                }],
                 // -- allow shorthand for timestamps
                 // timestamps can be specified with 't:|TIME', 't:TIME', or 'tTIME'. this fixes the latter two.
                 [[step], step => /(?<=^t(:\|?)?)(\d+)$/.exec(step), ([time]) => `t:|${timestamp[index] = time}`],
             ]) {
-                const v = turnData[src] && match(turnData[src]);
+                const v = turnData[src] && match(turnData[src]) && (transform ? transform(v) : v);
                 if (!v) continue;
-                turnData[dst] = transform ? transform(v) : v;
+                turnData[dst] = v;
                 // swap turn and step if needed
                 if (src !== dst) delete turnData[src];
             }
         });
-        turnData.to = !!turnData.to; // convert to boolean
-        // identifier for stopping at next timestamp, instead of next turn
-        if (turnData['step2'] === 't') {
-            if (!timestamp[0]) throw Error('Cannot infer end time if no start time was given!')
-            // exploit implementation for searching for end time by setting end time to one after the start
-            timestamp[1] = String(parseInt(timestamp[0])+1);
-        }
     }
-    let {start=0, end=0, step1, step2, to: seekEnd} = turnData;
+    let {start=0, end=0, step1, step2, to: seekEnd} = turnData || {to: true};
     if (start && end && start > end) throw Error('invalid turn range: ' + [start, end])
 
     /// get page to work with
