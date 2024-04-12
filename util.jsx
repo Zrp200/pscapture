@@ -256,12 +256,12 @@ async function fixwebm(file, shouldOpen) {
             .withVideoCodec("copy")
             .withAudioCodec("copy") // Copy the video and audio streams without re-encoding
             .output(tmp)
-            .on("end", () => {
-                fs.rmSync(file)
-                fs.renameSync(tmp, file)
-                if (shouldOpen) open(file, resolve)
-                else resolve()
-            })
+            .on("end", () =>
+                fs.rm(file, () => fs.rename(
+                    tmp, file,
+                    !shouldOpen ? resolve : () => open(file, resolve)
+                ))
+            )
             .on("error", (cause) => reject(new Error("Unable to fix metadata", {cause})))
 
         command.run()
@@ -293,12 +293,11 @@ async function makeGif(file, shouldOpen = true, verbose = false) {
         )
     )
         .catch(console.error)
-        .finally(() => {
-            fs.rmSync(palette)
-            if (shouldOpen) return new Promise(resolve => open(gif, resolve))
-        })
-        .catch(() => {
-        }) // do nothing
+        .finally(() => Promise.all([
+            new Promise(resolve => fs.rm(palette, resolve)),
+            shouldOpen && new Promise(resolve => open(gif, resolve)),
+        ]))
+        .catch(console.error)
 
 }
 
