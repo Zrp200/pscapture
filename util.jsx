@@ -125,6 +125,7 @@ async function download(
         // current behavior won't match same turn
         while(++i < steps.length) {
             const step = steps[i].substring(1)
+            console.log(step)
             const minor= step.charAt(0) === '-';
             if (end.time || end.step === 't') {
                 // fixme duplicated
@@ -153,7 +154,10 @@ async function download(
     }
 
     let state = new EventEmitter()
-    const battleEnd = new Promise(resolve => state.on('atqueueend', resolve))
+    const battleEnd = new Promise(resolve => state.once('record', () => {
+        state.on('atqueueend', resolve);
+        console.log([id, 'record']);
+    }));
 
     // -- options/setup
     await page.exposeFunction('sub', (type, ...args) => {
@@ -215,7 +219,7 @@ async function download(
                 b.seekTurn(Infinity, true)
                 b.stepQueue = orig
                 b.atQueueEnd = false
-            }, steps.toSpliced(startStep+1))
+            }, steps.toSpliced(startStep))
         }
     }
 
@@ -234,7 +238,7 @@ async function download(
         path: file,
         crop, speed: vspeed,
     })
-    console.log([id, 'record'])
+    state.emit('record', undefined);
     if (teamPreview) await new Promise(r => setTimeout(r, 1000))
     await battle.evaluate(b => b.play())
     await battleEnd
