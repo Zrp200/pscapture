@@ -120,17 +120,17 @@ async function download(
     if (!seekEnd) end.turn = start.turn;
     // end of queue (exclusive)
     const endStep = end &&  (() => {
-        if (!end.step) return steps.indexOf(`|turn|${end.turn+1}`, startStep)
+        if (end.turn && !end.step && !end.time) return steps.indexOf(`|turn|${end.turn+1}`, startStep)
         let i = end.turn ? steps.indexOf(`|turn|${end.turn}`, startStep) : startStep
         // current behavior won't match same turn
         while(++i < steps.length) {
             const step = steps[i].substring(1)
             const minor= step.charAt(0) === '-';
-            if (end.time) {
+            if (end.time || end.step === 't') {
                 // fixme duplicated
                 // optimize if using a timestamp; we don't have to assume nearly as much
                 const [time] = timeStampMatcher.exec(step) || [];
-                if (time && time - end.time >= 0) return i; // use this as the stopping point. if we passed it, then just stop here.
+                if (time && end.step === 't' || time - end.time >= 0) return i; // use this as the stopping point. if we passed it, then just stop here.
             } else if (step.startsWith(end.step, minor && !end.step.startsWith('-') ? 1 : 0)) {
                 if (minor) return i+1; // stop one action after this
                 break;
@@ -349,9 +349,8 @@ function parseTurns(turns) {
                     // identifier for stopping at next timestamp, instead of next turn
                     case 't':
                         if (index === 0) throw Error('t should not be used in start');
-                        if (!turnData.timestamp[0]) throw Error('Cannot infer end time if no start time was given!');
-                        // exploit implementation for searching for end time by setting end time to one after the start
-                        timestamp[1] = String(parseInt(timestamp[0])+1);
+                        if (turnData[turn]) throw Error('t is incompatible with a turn argument')
+                        // logic is used later
                         break;
                 }
             }],
