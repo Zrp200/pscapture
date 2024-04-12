@@ -106,15 +106,14 @@ let actions = [...parts].map((value,id,) => () => browser
     .then(context => context.newPage())
     .then(page => download(page, value))
 )
-let n = parts.length === 1 || (bulk || bulk === 1) && (bulk >= parts.length || bulk === true ? true : Math.ceil(parts.length / bulk));
+let n = typeof bulk == 'number' ? bulk >= actions.length || Math.ceil(actions.length / bulk) : bulk;
+console.log(n);
 (!n ? awaitSync(actions)
     : Promise.all(
         n === true ? actions.map(it => it()) :
-            function () {
+            function* () {
                 // map into buckets, todo improve algorithm
-                let res = []
                 let i = 0;
-                while (i < n) res.push(awaitSync(actions.slice(n * i, n * ++i)))
-                return res;
+                while (i < n) yield awaitSync(actions.slice(n * i, n * ++i))
             }()
     )).then(() => browser.then(b => b.close()))
