@@ -108,6 +108,7 @@ async function download(
                     break;
                 } // use this as the stopping point. if we passed it, then just stop here.
             } else {
+                startStep = i;
                 if (step.startsWith(start.step)) break;
                 // record the last major step or divider before this one
                 if (!step || !step.startsWith('-')) startStep = i;
@@ -124,12 +125,16 @@ async function download(
         // current behavior won't match same turn
         while(++i < steps.length) {
             const step = steps[i].substring(1)
+            const minor= step.charAt(0) === '-';
             if (end.time) {
                 // fixme duplicated
                 // optimize if using a timestamp; we don't have to assume nearly as much
                 const [time] = timeStampMatcher.exec(step) || [];
                 if (time && time - end.time >= 0) return i; // use this as the stopping point. if we passed it, then just stop here.
-            } else if (step.startsWith(end.step)) break;
+            } else if (step.startsWith(end.step, minor && !end.step.startsWith('-') ? 1 : 0)) {
+                if (minor) return i+1; // stop one action after this
+                break;
+            }
             if (end.turn && step.startsWith('turn')) return i; // not found
         }
         // search until we get a major action or a divider
