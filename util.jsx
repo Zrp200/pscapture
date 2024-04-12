@@ -152,27 +152,7 @@ async function download(
         await battle.evaluate((b, q) => b.stepQueue = q, steps)
     }
 
-    // -- start logic; find start step
-    // todo maybe if I mess with the queue, I can get it to seek the start aspect directly.
-    if (start) {
-        if (start.turn && !start.step) {
-            // direct seek if we are able
-            await battle.evaluate((b, start) => b.seekTurn(start, true), start.turn)
-        } else if (startStep) {
-            // seek the exact start step by messing with the queue
-            await battle.evaluate((b, q)=> {
-                const orig = b.stepQueue
-                // cut the queue at the point we want to seek to
-                b.stepQueue = q
-                b.seekTurn(Infinity, true)
-                b.stepQueue = orig
-                b.atQueueEnd = false
-            }, steps.toSpliced(startStep+1))
-        }
-    }
-
     let state = new EventEmitter()
-
     const battleEnd = new Promise(resolve => state.on('atqueueend', resolve))
 
     // -- options/setup
@@ -220,6 +200,24 @@ async function download(
                     box.width -= l.width + r.width
                     return box
                 })
+
+    // -- start logic; find start step
+    if (start) {
+        if (start.turn && !start.step) {
+            // direct seek if we are able
+            await battle.evaluate((b, start) => b.seekTurn(start, true), start.turn)
+        } else if (startStep) {
+            // seek the exact start step by messing with the queue
+            await battle.evaluate((b, q)=> {
+                const orig = b.stepQueue
+                // cut the queue at the point we want to seek to
+                b.stepQueue = q
+                b.seekTurn(Infinity, true)
+                b.stepQueue = orig
+                b.atQueueEnd = false
+            }, steps.toSpliced(startStep+1))
+        }
+    }
 
     // -- recording logic
     await mkdir[WEBM]; // just ensure that it's done
