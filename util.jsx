@@ -7,7 +7,7 @@ const fs = require("fs")
 const open = require('opener')
 
 const
-    turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t|all))[|]?(?<step1>(?:(?=\|)-\D)?[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/,
+    turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t|all))[|]?(?<step1>(?<=[|])-[^-]*|-[^-]*(?=-)|[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/,
     turnMatcher = /(?<=^turn[|]?)\d+$/,
     PREFIX = 'https://replay.pokemonshowdown.com/';
 
