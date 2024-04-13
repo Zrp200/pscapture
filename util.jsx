@@ -125,7 +125,6 @@ async function download(
         // current behavior won't match same turn
         while(++i < steps.length) {
             const step = steps[i].substring(1)
-            console.log(step)
             const minor= step.charAt(0) === '-';
             if (end.time || end.step === 't') {
                 // fixme duplicated

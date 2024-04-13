@@ -107,7 +107,6 @@ let actions = [...parts].map((value,id,) => () => browser
     .then(page => download(page, value))
 )
 let n = typeof bulk == 'number' ? bulk >= actions.length || Math.ceil(actions.length / bulk) : bulk;
-console.log(n);
 (!n ? awaitSync(actions)
     : Promise.all(
         n === true ? actions.map(it => it()) :
