@@ -7,7 +7,7 @@ const fs = require("fs")
 const open = require('opener')
 
 const
-    turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t))[|]?(?<step1>(?:(?=\|)-\D)?[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/,
+    turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t|all))[|]?(?<step1>(?:(?=\|)-\D)?[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/,
     turnMatcher = /(?<=^turn[|]?)\d+$/,
     PREFIX = 'https://replay.pokemonshowdown.com/';
 
@@ -69,7 +69,7 @@ async function download(
         let name = '';
         const toStr = ({turn, step}) => [turn, step].filter(i => i).join();
         name += toStr(start)
-        if (seekEnd) name += `-${toStr(end) || 'end'}`;
+        if (seekEnd && name) name += `-${toStr(end) || 'end'}`;
         const parts = [battleID];
         if (name) {
             // remove illegal characters
@@ -119,8 +119,8 @@ async function download(
     }
     if (!seekEnd) end.turn = start.turn;
     // end of queue (exclusive)
-    const endStep = end &&  (() => {
-        if (end.turn && !end.step && !end.time) return steps.indexOf(`|turn|${end.turn+1}`, startStep)
+    const endStep = (() => {
+        if (!end.step && !end.time) return end.turn && steps.indexOf(`|turn|${end.turn+1}`, startStep);
         let i = end.turn ? steps.indexOf(`|turn|${end.turn}`, startStep) : startStep
         // current behavior won't match same turn
         while(++i < steps.length) {
