@@ -58,7 +58,7 @@ async function download(
         }
     }
     // modify log as needed
-    if (gen) log = log.replace(/(?<=^\|gen\|)\d+/, gen)
+    if (gen) log = log.replace(/(?<=\|gen\|)\d+/, gen)
     await page.setContent(`<input name="replayid" value="${battleID}" hidden><script class="battle-log-data" type="text/plain">${log}</script><script src="https://play.pokemonshowdown.com/js/replay-embed.js"></script>`);
     if (!turns) await page.addStyleTag({content: ".turn { display: none }"})
     let battle = await page.evaluateHandle(() => Replays.battle)
