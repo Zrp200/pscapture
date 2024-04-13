@@ -67,7 +67,7 @@ async function download(
     }
     if (!id) {
         let name = '';
-        const toStr = ({turn, step}) => [turn, step].filter(i => i).join();
+        const toStr = ({turn, step}) => [turn, step].filter(i => i).join('');
         name += toStr(start)
         if (seekEnd && name) name += `-${toStr(end) || 'end'}`;
         const parts = [battleID];
