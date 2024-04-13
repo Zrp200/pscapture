@@ -90,7 +90,7 @@ async function download(
         let i = startStep
         while (i < steps.length) {
             const step = steps[i].substring(1)
-            if (end && step === (`turn|${end.turn+1}`)) {
+            if (end.turn && step === (`turn|${end.turn+1}`)) {
                 // not found
                 i = steps.length;
                 break;
@@ -149,6 +149,7 @@ async function download(
     // cut the queue at the end if needed
     if (endStep) {
         steps.splice(endStep)
+        //console.log(steps.slice(startStep))
         await battle.evaluate((b, q) => b.stepQueue = q, steps)
     }
 
@@ -370,7 +371,7 @@ function parseTurns(turns) {
         }
     });
     const [start, end] = rangeKeys.map( (k, i) => ({
-        turn: parseInt(turnData[k]),
+        turn: parseInt(turnData[k] || 0),
         step: turnData[`step${i+1}`],
         time: timestamp[i],
     }))
