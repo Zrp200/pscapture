@@ -242,7 +242,7 @@ async function download(
     if (teamPreview) await new Promise(r => setTimeout(r, 1000))
     await battle.evaluate(b => b.play())
     await battleEnd
-    await new Promise(r => setTimeout(r, delay)) // give some extra time for the animations to finish
+    await new Promise(r => setTimeout(r, delay*2)) // give some extra time for the animations to finish
     await recorder.stop()
     await Promise.all([
         fixwebm(file, shouldOpen && !gif).then(() => {
