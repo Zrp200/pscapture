@@ -171,11 +171,10 @@ async function download(
     const delay = await battle.evaluate((b, showChat, speed, hardcore) => {
         b.subscribe(window.sub)
         b.ignoreNicks = !showChat
-        // noinspection JSUnresolvedReference
         b.setMute(true); // we don't support sound right now
         if (speed) Replays.changeSetting('speed', speed);
-        if (hardcore) { // noinspection JSUnresolvedReference
-            b.setHardcoreMode(true)
+        if (hardcore) {
+            b.setHardcoreMode(true);
         }
         return b.messageFadeTime;
     }, showChat, speed, hardcore)
