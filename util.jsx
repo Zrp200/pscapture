@@ -8,8 +8,7 @@ const open = require('opener')
 
 const
     turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t|all))[|]?(?<step1>(?<=[|])-[^-]*|-[^-]*(?=-)|[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/,
-    turnMatcher = /(?<=^turn[|]?)\d+$/,
-    PREFIX = 'https://replay.pokemonshowdown.com/';
+    turnMatcher = /(?<=^turn[|]?)\d+$/;
 
 const folders = ["webm", "gifs"]
 const [WEBM, GIF] = folders
@@ -46,10 +45,7 @@ async function download(
         id,
         turns = defaults.turns, // show turn indicator
     }) {
-    if (!src.startsWith(PREFIX)) src = PREFIX + src
-
-    /// get page to work with
-    let {log, id: battleID, players} = await page.goto(`${src}.json`).then(i => i.json())
+    let {log, id: battleID, players} = await page.goto(src).then(i => i.json());
     if (player) {
         // todo add better verification for this or error handling
         switch (players.indexOf(player)) {

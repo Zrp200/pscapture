@@ -75,26 +75,25 @@ const parts = function* () {
         let {_: [src, turns, ...other], $0, ...opts} = parser.parse(slice);
         if (other.length || !src) continue;
         let m = turnSpec.test(src)
-        let cmd = {...opts, src, turnData: m && src};
-        if (turns) {
-            if (m) continue; // two turn arguments
-            if (!turnSpec.test(turns)) continue; // two src arguments
-            cmd.turnData = turns
-        } else if (m) {
-            // todo incorporate as middleware or something
-            if (!last.src) throw Error('no src!'); // can't infer src
-            else delete cmd.src;
-        }
-        if (cmd.turnData) {
-            // fixme distinguish between exceptions from this and exceptions from other stuff
-            try {
-                cmd.turnData = parseTurns(cmd.turnData);
-            } catch (e) {
-                console.error(`${slice}: ${e}`);
-                return;
+        try {
+            if (m) {
+                if (turns) continue; // two turn arguments
+                // todo incorporate as middleware or something
+                if (!last.src) throw Error('no src!'); // can't infer src from previous
+                turns = src;
+                src = undefined;
             }
-        } else delete cmd.turnData;
-        yield last = {...last, ...cmd};
+            else if (!turnSpec.test(turns)) continue; // two src arguments
+            else {
+                opts.src = parseSrc(src, opts);
+            }
+            // fixme distinguish between exceptions from this and exceptions from other stuff
+            if (turns) opts.turnData = parseTurns(turns);
+        } catch (e) {
+            console.error(`${slice}: ${e}`);
+            return;
+        }
+        yield last = {...last, ...opts};
         i = j + 1;
         j = argv.length;
     }
@@ -116,3 +115,21 @@ let n = typeof bulk == 'number' ? bulk >= actions.length || Math.ceil(actions.le
                 while (i < n) yield awaitSync(actions.slice(n * i, n * ++i))
             }()
     )).then(() => browser.then(b => b.close()))
+
+// checker logic for download src argument
+function parseSrc(src, opts) {
+    const url = new URL(src, 'https://replay.pokemonshowdown.com');
+    // cut out query parameters, change defaults as needed
+    for (const [k,v] of url.searchParams) switch(k) {
+        case 'p2':
+            // change the default of reverse
+            if (opts && opts.reverse === undefined) opts.reverse = true;
+            break;
+        case 'turn':
+            // do nothing --- maybe in the future it'll change the default for turnspec
+            break;
+    }
+    url.search = ''; // clear search params
+    if (!url.pathname.endsWith('.json')) url.pathname += '.json'; // looking for json
+    return url;
+}
