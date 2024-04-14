@@ -278,33 +278,17 @@ async function makeGif(file, shouldOpen = true, verbose = false) {
     await mkdir[GIF]
     const filename = path.basename(file, path.extname(file))
     const gif = path.join(GIF, filename + '.gif')
-    const palette = file + '.png'
-    const template = (resolve, reject, s) => s
+    await new Promise((resolve, reject) => ffmpeg(file)
         .on('start', (cmd) => {
             if (verbose) console.log(cmd)
         })
         .on('end', resolve)
         .on('error', reject)
-
-    return new Promise((resolve, reject) =>
-        template(resolve, reject, ffmpeg(file))
-            .videoFilter('palettegen')
-            .save(palette)
-    ).then(() => new Promise((resolve, reject) => template(resolve, reject, ffmpeg())
-            .addInput(file)
-            .addInput(palette)
-            .complexFilter('paletteuse')
-            .outputFPS(15)
-            .save(gif)
-        )
-    )
-        .catch(console.error)
-        .finally(() => Promise.all([
-            new Promise(resolve => fs.rm(palette, resolve)),
-            shouldOpen && new Promise(resolve => open(gif, resolve)),
-        ]))
-        .catch(console.error)
-
+        .videoFilter('split[s0][s1];[s0]palettegen[p];[s1][p]paletteuse')
+        .outputFPS(15)
+        .save(gif)
+    ).catch(console.error)
+    if (shouldOpen) await new Promise(r => open(gif, r))
 }
 
 function parseTurns(turns) {
