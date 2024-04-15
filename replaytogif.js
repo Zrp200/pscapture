@@ -83,7 +83,7 @@ const parts = function* () {
                 turns = src;
                 src = undefined;
             }
-            else if (!turnSpec.test(turns)) continue; // two src arguments
+            else if (turns && !turnSpec.test(turns)) continue; // two src arguments
             else {
                 opts.src = parseSrc(src, opts);
             }
