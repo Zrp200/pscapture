@@ -83,9 +83,11 @@ async function download(
     const steps = await battle.evaluate((b) => b.stepQueue);
     let startStep = start.turn && steps.indexOf(`|turn|${start.turn}`)
     if (start && start.step) {
-        let i = startStep
+        let i = startStep;
+        const seekMinor = start.step.startsWith('-');
         while (i < steps.length) {
-            const step = steps[i].substring(1)
+            const step = steps[i].substring(1),
+                  minor = step ? step.startsWith('-') : false;
             if (end.turn && step === (`turn|${end.turn+1}`)) {
                 // not found
                 i = steps.length;
@@ -105,9 +107,7 @@ async function download(
                 } // use this as the stopping point. if we passed it, then just stop here.
             } else {
                 startStep = i;
-                if (step.startsWith(start.step)) break;
-                // record the last major step or divider before this one
-                if (!step || !step.startsWith('-')) startStep = i;
+                if (step.startsWith(start.step, minor && !seekMinor ? 1 : 0)) break;
             }
             i++;
         }
