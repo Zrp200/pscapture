@@ -44,6 +44,7 @@ async function download(
         shouldOpen = defaults.shouldOpen,
         id,
         turns = defaults.turns, // show turn indicator
+        ...opts
     }) {
     let {log, id: battleID, players} = await page.goto(src).then(i => i.json());
     if (player) {
@@ -217,6 +218,8 @@ async function download(
             }, steps.toSpliced(startStep))
         }
     }
+
+    if(startStep && endStep && opts['showSteps']) console.log(steps.slice(startStep,endStep))
 
     // -- recording logic
     await mkdir[WEBM]; // just ensure that it's done

@@ -41,6 +41,7 @@ const save = [
     ['hardcore', {desc: 'hide extra information not present in game'}],
     ['gif', {describe: "generate a gif with this input, otherwise just creates a webm", type: 'boolean'}],
     ['shouldOpen', {desc: 'immediately open result', boolean: true, alias: 'open'}],
+    ['show-steps', {desc: 'When given a defined start and end, output the corresponding part of the log', boolean: true}],
 ].reduce((prev, [key, value],) => ({...prev, [key]: {...value, group: 'Replay Options'}}), {})
 
 yargs()

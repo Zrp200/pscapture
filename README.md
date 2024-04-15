@@ -22,13 +22,20 @@ both `begin` and `end` can be omitted; `begin` defaults to the start of the batt
 
 Steps can also be provided to provide more control over what to capture. For example, `4move-faint` would start at turn 4 at the first move. The steps are found by matching the start of the current step, so `move` would match any step starting with`|move`
 
+More details:
+* a given step will be matched against the start of a protocol:
+  * passing 'switch' will match the first '|switch' command generally if passed as a start, and it will match the first '|switch' after the start point when passed as the end
+  * passing '6switch' will match the first '|switch' in turn 6
+* 'all' will capture the whole battle. It's not suggested to make this a gif.
+* timestamps can be directly given for both start and end
+
 If only `begin` is given, (turns=6, for example) `end` is assumed to be the same turn, and the gif will cover only that turn.
 
 ### Replay Options
 #### -r, --reverse
 reverse viewpoint of battle
 #### --player, --side
-viewpoint to use for battle
+viewpoint to use for battle, by player name. Throws an error if the player isn't found.
 
 mutually exclusive with reverse
 #### --show
@@ -43,7 +50,7 @@ adjust time between messages. affects output speed.
 hyperfast disables animations
 
 choices: "very slow", "slow", "normal", "fast", "hyperfast"
-default: "normal"
+default: "fast"
 #### --vspeed
 output video speed
 
@@ -61,6 +68,9 @@ generate a gif with this input, default true
 
 #### --open
 open the gif/webm after generation
+
+#### --show-steps
+when not processing the entire battle, log the part of the protocol captured 
 
 ### Options:
 #### --help                
