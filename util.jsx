@@ -72,11 +72,11 @@ async function download(
             // remove illegal characters
             parts.push(name.replaceAll(/[^\w\-_]/g, ''));
             // add additional properties
-            if (reverse) parts.push('p2');
-            if (show !== defaults.show) parts.push(`show-${show}`);
-            if (speed !== defaults.speed) parts.push(speed);
-            if (vspeed !== defaults.vspeed) parts.push(vspeed + 'x');
         }
+        if (reverse) parts.push('p2');
+        if (show !== defaults.show) parts.push(`show-${show}`);
+        if (speed !== defaults.speed) parts.push(speed);
+        if (vspeed !== defaults.vspeed) parts.push(vspeed + 'x');
         id = parts.join('_');
     }
 
