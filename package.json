@@ -1,7 +1,7 @@
 {
   "name": "replaytogif",
   "version": "0.5.8",
-  "description": "A Node.js application to make gifs out of notable moments in a battle",
+  "description": "A Node.js application to make gifs or videos out of notable moments in a Pokemon Showdown! replay ",
   "main": "replaytogif.js",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
@@ -14,9 +14,14 @@
     "start": "node replaytogif",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zrp200/replay-to-gif.git"
+  },
   "keywords": [
     "Pokemon Showdown"
   ],
+
   "author": "Zrp200",
-  "license": "ISC"
+  "license": "AGPL-3.0"
 }
