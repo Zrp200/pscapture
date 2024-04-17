@@ -1,10 +1,27 @@
 # Replay To Gif
 
-A Node.js application to make gifs out of notable moments in a battle 
+A Node.js application to make gifs or videos out of notable moments in a Pokemon Showdown! replay.
 
-Inspired by [Intenzi/ShowdownReplayDownloader](https://github.com/Intenzi/ShowdownReplayDownloader)
+Inspired by [Intenzi/ShowdownReplayDownloader](https://github.com/Intenzi/ShowdownReplayDownloader), but uses a different capture method and does not directly capture https://replay.pokemonshowdown.com.
+
+This uses Showdown's [replay-embed.js](https://github.com/smogon/pokemon-showdown-client/blob/master/play.pokemonshowdown.com/js/replay-embed.template.js) file to embed a chosen replay's protocol data into a headless browser and records it.
+
+Multiple replays can be processed at once, though results may vary and optimization of this is pending.
 
 Currently, it will make two directories in the working directory for outputs. This will probably be configurable in the future.
+
+## Installation
+
+1. Clone the directory
+2. run `npm install` in the root of the directory
+3. run `node replaytogif` with your desired arguments.
+
+## Limitations
+
+* Sound is not currently supported when outputting in video formats
+* Output quality currently varies widely by machine
+* Generated gifs may be very large if capturing a long moment
+* All replays must be valid Pokemon Showdown! replays. Direct log file/downloaded html support is planned but not yet implemented.
 
 ## Usage:
 ```replaytogif [<src> [[range] [replay_opts]]..```
@@ -41,7 +58,7 @@ mutually exclusive with reverse
 #### --show
 Show chat or teams (the sidebars) and/or chat. Default is to hide these.
 
-choices: false, "teams" (show chat and teams, enables nicknames), "chat" (show chat)
+choices: false (--no-show), "teams" (show chat and teams, enables nicknames), "chat" (show chat)
 
 default: false (show only the main battle)
 #### --speed
@@ -70,7 +87,7 @@ generate a gif with this input, default true
 open the gif/webm after generation
 
 #### --show-steps
-when not processing the entire battle, log the part of the protocol captured 
+when not processing the entire battle, log the part of the protocol captured. This is helpful for finding the best start and end step for a given capture. 
 
 ### Options:
 #### --help                
