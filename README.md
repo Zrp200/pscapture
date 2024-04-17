@@ -1,4 +1,4 @@
-# Replay To Gif
+# PSCapture
 
 A Node.js application to make gifs or videos out of notable moments in a Pokemon Showdown! replay.
 
@@ -14,7 +14,7 @@ Currently, it will make two directories in the working directory for outputs. Th
 
 1. Clone the directory
 2. run `npm install` in the root of the directory
-3. run `node replaytogif` with your desired arguments.
+3. run `node pscapture` with your desired arguments.
 
 ## Limitations
 
@@ -24,7 +24,7 @@ Currently, it will make two directories in the working directory for outputs. Th
 * All replays must be valid Pokemon Showdown! replays. Direct log file/downloaded html support is planned but not yet implemented.
 
 ## Usage:
-```replaytogif [<src> [[range] [replay_opts]]..```
+```pscapture [<src> [[range] [replay_opts]]..```
 
 ### Positionals:
 #### src 

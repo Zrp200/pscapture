@@ -1,8 +1,8 @@
 {
-  "name": "replaytogif",
+  "name": "pscapture",
   "version": "0.5.9",
-  "description": "A Node.js application to make gifs or videos out of notable moments in a Pokemon Showdown! replay ",
-  "main": "replaytogif.js",
+  "description": "A Node.js application to make gifs or videos out of notable moments in a Pokemon Showdown! replay",
+  "main": "pscapture.js",
   "dependencies": {
     "@ffmpeg-installer/ffmpeg": "^1.1.0",
     "fluent-ffmpeg": "^2.1.2",
@@ -11,12 +11,12 @@
     "yargs": "^17.7.2"
   },
   "scripts": {
-    "start": "node replaytogif",
+    "start": "node pscapture",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/zrp200/replay-to-gif.git"
+    "url": "git+https://github.com/zrp200/pscapture.git"
   },
   "keywords": [
     "Pokemon Showdown"
