@@ -1,6 +1,6 @@
 {
   "name": "replaytogif",
-  "version": "0.5.8",
+  "version": "0.5.9",
   "description": "A Node.js application to make gifs or videos out of notable moments in a Pokemon Showdown! replay ",
   "main": "replaytogif.js",
   "dependencies": {
@@ -21,7 +21,6 @@
   "keywords": [
     "Pokemon Showdown"
   ],
-
   "author": "Zrp200",
   "license": "AGPL-3.0"
 }
