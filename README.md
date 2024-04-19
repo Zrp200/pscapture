@@ -90,6 +90,9 @@ Show the turn indicator, default true
 #### --gif
 generate a gif with this input, default true
 
+#### --mp4
+generate a mp4 with this input, default false. Using this option changes the --gif default to false
+
 #### --open
 open the gif/webm after generation
 

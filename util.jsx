@@ -40,7 +40,7 @@ async function download(
         vspeed = 1,
         speed = defaults.speed,
         gen, hardcore,
-        gif = defaults.gif,
+        mp4, gif = defaults.gif && !mp4,
         shouldOpen = defaults.shouldOpen,
         id,
         turns = defaults.turns, // show turn indicator
@@ -267,35 +267,37 @@ async function download(
     await battleEnd
     if (!endStep) await new Promise(r => setTimeout(r, delay*2)) // give some extra time for the animations to finish
     await recorder.stop()
-    await Promise.all([
-        fixwebm(file, shouldOpen && !gif).then(() => {
-            if (gif) {
-                console.log([id, 'gif']);
-                return makeGif(file, shouldOpen);
-            }
-        }),
-        page.close()
-    ])
+    page.close();
+    console.log([id,'processing']);
+    const video = await (mp4 ? formatVideo(file, {format: 'mp4'}) : fixwebm(file));
+    if (gif) {
+        await makeGif(video, shouldOpen);
+    } else if (shouldOpen) {
+        await new Promise(r => open(video, r))
+    }
     console.log([id, 'complete'])
 }
 
-async function fixwebm(file, shouldOpen) {
-    return new Promise((resolve, reject) => {
-        const tmp = file + '.tmp.webm'
-        const command = ffmpeg(file)
+function fixwebm(file) {
+    return formatVideo(file, {
+        transform: cmd => cmd
             .withVideoCodec("copy")
-            .withAudioCodec("copy") // Copy the video and audio streams without re-encoding
-            .output(tmp)
-            .on("end", () =>
-                fs.rm(file, () => fs.rename(
-                    tmp, file,
-                    !shouldOpen ? resolve : () => open(file, resolve)
-                ))
-            )
-            .on("error", (cause) => reject(new Error("Unable to fix metadata", {cause})))
-
-        command.run()
-    })
+            .withAudioCodec("copy"), // Copy the video and audio streams without re-encoding
+    }).catch( (cause) => new Error("Unable to fix metadata", {cause}));
+}
+async function formatVideo(file, {format, transform}) {
+    const
+        output = !format ? file + '.tmp' : file.replace(/(?<=\.)[^.]+$/, format),
+        cmd = ffmpeg(file).format(format || 'webm')
+    if (transform) transform.call(cmd, cmd);
+    cmd.saveToFile(output);
+    await new Promise((resolve, reject) => cmd
+            .on('error', reject)
+            .on('end', () => fs.rm(file, format ? resolve :
+                // rename the temp file to the original file
+                () => fs.rename(output, file, resolve)))
+    )
+    return format ? output : file;
 }
 
 async function makeGif(file, shouldOpen = true, verbose = false) {
