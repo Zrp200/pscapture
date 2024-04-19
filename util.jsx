@@ -117,8 +117,17 @@ async function download(
     if (!seekEnd) end.turn = start.turn;
     // end of queue (exclusive)
     const endStep = (() => {
-        if (!end.step && !end.time) return end.turn && steps.indexOf(`|turn|${end.turn+1}`, startStep);
+        if (!end.turn && !end.time && !end.step) return 0;
         let i = end.turn ? steps.indexOf(`|turn|${end.turn}`, startStep) : startStep
+        if (i === -1 || !end.step && !end.time) {
+            // seek next turn
+            if (i !== -1) i = steps.indexOf(`|turn|${end.turn+1}`, i);
+            if (i !== -1) return i;
+            // if the end turn doesn't exist, then just seek end (or the part right before it)
+            // fixme this probably just always seeks end
+            console.log([id, 'warning: end turn not found']);
+            return seekEnd ? 0 : steps.lastIndexOf('|');
+        }
         // current behavior won't match same turn
         while(++i < steps.length) {
             const step = steps[i].substring(1)
