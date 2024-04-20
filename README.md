@@ -46,6 +46,13 @@ More details:
 * 'all' will capture the whole battle. It's not suggested to make this a gif.
 * timestamps can be directly given for both start and end
 
+Getting a more exact end step:
+* The end step can be prefixed with ^ (like "5-6^move|p2" or just "5-^move|p2") to specifically exclude that step.
+  * Otherwise, the end step is considered to be inclusive, and will be included in the capture.
+* The end step can be prefixed with ~ (like "5-6~faint" to exclude any minor steps after the end step.
+  * This can be handy to exclude leftovers recovery or life orb recoil.
+  * This has no effect when matching minor steps.
+
 If only `begin` is given, (turns=6, for example) `end` is assumed to be the same turn, and the gif will cover only that turn.
 
 ### Replay Options

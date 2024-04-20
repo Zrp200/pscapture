@@ -7,7 +7,7 @@ const fs = require("fs")
 const open = require('opener')
 
 const
-    turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t|all))[|]?(?<step1>(?<=[|])-[^-]*|-[^-]*(?=-)|[^-]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/,
+    turnSpec = /^(?:(?<start>\d+)|(?=[|]|start|t|all))[|]?(?<step1>(?<=[|])-[^-~^]*|-[^-~^]*(?=-)|[^-~^]+)?(?<to>-(?<end>\d+)?[|]?(?<step2>.+)?)?/,
     turnMatcher = /(?<=^turn[|]?)\d+$/;
 
 const folders = ["webm", "gifs"]
@@ -71,7 +71,12 @@ async function download(
         if (reverse) parts.push('p2');
         if (name) {
             // remove illegal characters
-            parts.push(name.replaceAll(/[^\w\-_]/g, ''));
+            parts.push(name
+                // special characters for end step
+                .replace(/\^/,'_ex_')
+                .replace('~', '_exm_')
+                // remove potentially problematic characters
+                .replaceAll(/[^\w\-_]/g, ''));
             // add additional properties
         }
         // fixme it would be nice to iterate over opts instead
@@ -131,6 +136,9 @@ async function download(
             console.log([id, 'warning: end turn not found']);
             return seekEnd ? 0 : steps.lastIndexOf('|');
         }
+        const exclude = !!end.step &&
+            (end.step.startsWith('^') && 'step') || (end.step.startsWith('~') && 'minor');
+        if (exclude) end.step = end.step.substring(1);
         // current behavior won't match same turn
         while(++i < steps.length) {
             const step = steps[i].substring(1)
@@ -141,7 +149,8 @@ async function download(
                 const [time] = timeStampMatcher.exec(step) || [];
                 if (time && end.step === 't' || time - end.time >= 0) return i; // use this as the stopping point. if we passed it, then just stop here.
             } else if (step.startsWith(end.step, minor && !end.step.startsWith('-') ? 1 : 0)) {
-                if (minor) return i+1; // stop one action after this
+                if (minor || exclude === 'minor') return i+1; // stop one action after this
+                if (exclude === 'step') return i;
                 break;
             }
             if (end.turn && step.startsWith('turn')) return i; // not found
