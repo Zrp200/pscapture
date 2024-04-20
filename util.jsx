@@ -210,6 +210,10 @@ async function download(
                     return box
                 })
 
+    // wait for it to be fully loaded
+    const playButton = await page.waitForSelector('.playbutton', {visible: true}),
+        playButtonHidden = page.waitForSelector('.playbutton', {hidden: true});
+
     // -- start logic; find start step
     if (start) {
         if (start.turn && !start.step) {
@@ -237,10 +241,10 @@ async function download(
     if (!startStep) {
         // show team preview if showing team 0
         // wonder if I should add a toggle for this
-        const s = await page.$eval('.playbutton', p => p.style.display = 'none')
+        playButton.evaluate(p => p.style.display = 'none')
         teamPreview = steps.includes('|teampreview')
-        await s;
     }
+    await playButtonHidden; // don't include playbutton in recording
     let recorder = await page.screencast({
         path: file,
         crop, speed: vspeed,
