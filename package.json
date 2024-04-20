@@ -1,6 +1,6 @@
 {
   "name": "pscapture",
-  "version": "0.5.9",
+  "version": "0.5.10",
   "description": "A Node.js application to make gifs or videos out of notable moments in a Pokemon Showdown! replay",
   "main": "pscapture.js",
   "dependencies": {
