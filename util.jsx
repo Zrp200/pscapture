@@ -68,12 +68,15 @@ async function download(
         name += toStr(start)
         if (seekEnd && name) name += `-${toStr(end) || 'end'}`;
         const parts = [battleID];
+        if (reverse) parts.push('p2');
         if (name) {
             // remove illegal characters
             parts.push(name.replaceAll(/[^\w\-_]/g, ''));
             // add additional properties
         }
-        if (reverse) parts.push('p2');
+        // fixme it would be nice to iterate over opts instead
+        if (gen) parts.push('g' + gen);
+        if (hardcore) parts.push('hc')
         if (show !== defaults.show) parts.push(`show-${show}`);
         if (speed !== defaults.speed) parts.push(speed);
         if (vspeed !== defaults.vspeed) parts.push(vspeed + 'x');
