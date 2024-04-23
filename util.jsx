@@ -126,7 +126,7 @@ async function download(
     // end of queue (exclusive)
     const endStep = (() => {
         if (!end.turn && !end.time && !end.step) return 0;
-        let i = end.turn ? steps.indexOf(`|turn|${end.turn}`, startStep) : startStep
+        let i = end.turn && end.turn !== start.turn ? steps.indexOf(`|turn|${end.turn}`, startStep) : startStep
         if (i === -1 || !end.step && !end.time) {
             // seek next turn
             if (i !== -1) i = steps.indexOf(`|turn|${end.turn+1}`, i);
