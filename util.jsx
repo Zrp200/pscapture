@@ -1,6 +1,7 @@
 const {EventEmitter} = require("puppeteer");
+let {path: ffmpegPath} = require('@ffmpeg-installer/ffmpeg')
 const ffmpeg = require("fluent-ffmpeg");
-ffmpeg.setFfmpegPath(require('@ffmpeg-installer/ffmpeg').path)
+ffmpeg.setFfmpegPath(ffmpegPath)
 
 const path = require("path")
 const fs = require("fs")
@@ -259,7 +260,7 @@ async function download(
     await playButtonHidden; // don't include playbutton in recording
     let recorder = await page.screencast({
         path: file,
-        crop, speed: vspeed,
+        crop, speed: vspeed, ffmpegPath
     })
     state.emit('record', undefined);
     if (teamPreview) await new Promise(r => setTimeout(r, 1000))
