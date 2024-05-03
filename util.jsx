@@ -183,8 +183,7 @@ async function download(
     await page.exposeFunction('sub', (type, ...args) => {
         // turn has custom logic since 'turn' is super useless by itself
         if (state.emit(type, args) && type !== 'turn') console.log([id, type])
-    })
-
+    });
 
     const showChat = show === 'chat'
 
@@ -197,7 +196,7 @@ async function download(
             b.setHardcoreMode(true);
         }
         return b.messageFadeTime;
-    }, showChat, speed, hardcore)
+    }, showChat, speed, hardcore);
 
     // -- cropping logic
     let battleFrame = page.waitForSelector('.battle');
